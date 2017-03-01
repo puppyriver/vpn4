@@ -1,0 +1,40 @@
+server:
+    port: 9000
+    contextPath:
+
+spring:
+    profiles:
+        active: dev
+
+    thymeleaf:
+        cache: false
+
+    jade4j:
+        caching: false
+
+    dataSource:
+      driverClassName: com.mysql.jdbc.Driver
+      url: jdbc:mysql://127.0.0.1:3306/itmanager20?useUnicode=true&characterEncoding=utf-8&autoReconnect=true
+      username: root
+      password: root
+
+    hibernate:
+      dialect: org.hibernate.dialect.MySQLDialect
+      hbm2ddl.auto: update
+      show_sql: false
+
+    redis:
+      host: localhost
+      port: 6379
+      default_expire_time: 86400
+logging:
+    config: classpath:logback-spring.xml
+    path: ../logs
+    level: debug
+cdcp :
+    nodes :
+      - ronnie
+      - chloe
+
+
+
