@@ -13,10 +13,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication(scanBasePackages = {"infox.itmanager6.boot"})
 // 开启缓存请把下行取消注释
 //@EnableCaching
-public class Application {
+public class OSLogAnalyst {
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(OSLogAnalyst.class, args);
     }
 
 
