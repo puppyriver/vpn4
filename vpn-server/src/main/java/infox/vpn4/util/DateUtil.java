@@ -185,4 +185,9 @@ public class DateUtil {
         Date parse = DateUtil.parse("Mon Oct 10 13:56:00 2016");
         System.out.println("parse = " + parse);
     }
+
+    private static SimpleDateFormat dayFormat = new SimpleDateFormat("yyyyMMdd");
+    public static String getDayString(Date time) {
+        return dayFormat.format(time);
+    }
 }
