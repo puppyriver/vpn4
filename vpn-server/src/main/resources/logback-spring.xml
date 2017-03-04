@@ -4,7 +4,7 @@
     <!-- 文件输出格式 -->
     <property name="PATTERN" value="%-12(%d{yyyy-MM-dd HH:mm:ss.SSS}) |-%-5level [%thread] %c [%L] -| %msg%n" />
     <!-- test文件路径 -->
-    <property name="TEST_FILE_PATH" value="logs" />
+    <property name="LOG_FILE_PATH" value="logs" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -14,10 +14,25 @@
     <!-- 每天产生一个文件 -->
     <appender name="TEST-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <!-- 文件路径 -->
-        <file>${TEST_FILE_PATH}/spring.log</file>
+        <file>${LOG_FILE_PATH}/spring.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 文件名称 -->
-            <fileNamePattern>${TEST_FILE_PATH}/info.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_FILE_PATH}/info.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 文件最大保存历史数量 -->
+            <MaxHistory>100</MaxHistory>
+        </rollingPolicy>
+
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>${PATTERN}</pattern>
+        </layout>
+    </appender>
+
+    <appender name="VPN-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 文件路径 -->
+        <file>${LOG_FILE_PATH}/vpn.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 文件名称 -->
+            <fileNamePattern>${LOG_FILE_PATH}/vpn.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- 文件最大保存历史数量 -->
             <MaxHistory>100</MaxHistory>
         </rollingPolicy>
@@ -42,10 +57,10 @@
 
         <appender name="PMS" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <!-- 文件路径 -->
-            <file>${TEST_FILE_PATH}/pms.log</file>
+            <file>${LOG_FILE_PATH}/pms.log</file>
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                 <!-- 文件名称 -->
-                <fileNamePattern>${TEST_FILE_PATH}/pms.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <fileNamePattern>${LOG_FILE_PATH}/pms.%d{yyyy-MM-dd}.log</fileNamePattern>
                 <!-- 文件最大保存历史数量 -->
                 <MaxHistory>100</MaxHistory>
             </rollingPolicy>
@@ -68,7 +83,9 @@
     <!-- 测试环境 -->
     <springProfile name="asb">
 
-
+        <logger name="infox.vpn4" level="debug" addtivity="true">
+            <appender-ref ref="VPN-FILE" />
+        </logger>
         <root level="info">
             <appender-ref ref="TEST-FILE" />
             <appender-ref ref="CONSOLE" />

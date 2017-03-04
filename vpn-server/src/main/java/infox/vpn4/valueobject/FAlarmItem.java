@@ -18,7 +18,8 @@ public class FAlarmItem extends BObject {
     public FAlarmItem() {
     }
 
-    public FAlarmItem(String vendorDn, String domainCode, String name, Integer occurCount) {
+    public FAlarmItem(String dn,String vendorDn, String domainCode, String name, Integer occurCount) {
+        this.dn  = dn;
         this.vendorDn = vendorDn;
         this.domainCode = domainCode;
         this.name = name;

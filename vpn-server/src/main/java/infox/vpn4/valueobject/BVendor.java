@@ -13,5 +13,4 @@ import javax.persistence.Entity;
  */
 @Entity
 public class BVendor extends BObject {
-    private Logger logger = LoggerFactory.getLogger(BVendor.class);
 }

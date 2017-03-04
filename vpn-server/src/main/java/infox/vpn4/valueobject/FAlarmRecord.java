@@ -24,6 +24,10 @@ public class FAlarmRecord {
     //private String timeString;
     private Integer occurCount;
 
+    public FAlarmRecord() {
+        
+    }
+
     public FAlarmRecord(String alarmItemDn, Date alarmTime, Integer timeWindowInSecond, Integer occurCount) {
         this.alarmItemDn = alarmItemDn;
         this.alarmTime = alarmTime;

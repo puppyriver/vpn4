@@ -104,7 +104,7 @@ public class JdbcTemplateUtil {
             public Object doInPreparedStatement(PreparedStatement ps) throws SQLException, DataAccessException {
                 if (ps.execute())
                     return obj;
-                return null;
+                return obj;
 
             }
         });

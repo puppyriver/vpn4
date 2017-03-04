@@ -28,9 +28,9 @@ public class SqliteDBUtil {
     }
     public static SqliteDataSource getDaySqliteDatasource(String day, Class cls, boolean createIfNotExist, Consumer<JdbcTemplate> initTable) {
         String folder = SysProperty.getString("archive.db.folder","../dbs");
-        folder = (folder.endsWith("/") || folder.endsWith("\\"))? folder : (folder+ File.pathSeparator);
+        folder = (folder.endsWith("/") || folder.endsWith("\\"))? folder : (folder+ File.separator);
         if (!new File(folder).exists()) new File(folder).mkdirs();
-        File dbFile = new File(folder+".db");
+        File dbFile = new File(folder+day+".db");
         boolean init = !dbFile.exists();
         if (init && !createIfNotExist) return null;
         SqliteDataSource dataSource = new SqliteDataSource(folder+day+".db");
@@ -38,7 +38,7 @@ public class SqliteDBUtil {
         JdbcTemplate sqliteJdbc = new JdbcTemplate(dataSource);
         if (init) {
             try {
-                JdbcTemplateUtil.createTable(sqliteJdbc, cls, cls.getName());
+                JdbcTemplateUtil.createTable(sqliteJdbc, cls, cls.getSimpleName());
                 if (initTable != null)
                     initTable.accept(sqliteJdbc);
 //                sqliteJdbc.execute("CREATE INDEX IDX_PMDATA_STPID on PM_DATA(statPointId)");

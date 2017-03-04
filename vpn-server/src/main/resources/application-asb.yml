@@ -1,0 +1,27 @@
+server:
+    port: 19800
+    contextPath:
+
+spring:
+    thymeleaf:
+        cache: false
+
+    jade4j:
+        caching: false
+
+    dataSource:
+      driverClassName: oracle.jdbc.OracleDriver
+      url: jdbc:oracle:thin:@135.251.223.204:1521:orcl
+      username: itmanager
+      password: itmanager
+
+    hibernate:
+      dialect: org.hibernate.dialect.Oracle10gDialect
+      hbm2ddl.auto: update
+      show_sql: false
+
+    redis:
+      host: localhost
+      port: 6379
+      default_expire_time: 86400
+
