@@ -70,7 +70,7 @@ public class ModuleConfig  implements InitializingBean {
 
     private void scan() {
         File dir = new File(SysProperty.getString("oslog.dir","oslog"));
-
+        if (!dir.exists()) dir.mkdirs();
         File[] files = dir.listFiles();
         if (files.length == 0) {
             alarmItemMgr().flush();

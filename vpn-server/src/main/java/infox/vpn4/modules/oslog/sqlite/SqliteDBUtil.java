@@ -7,9 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
@@ -26,10 +24,36 @@ public class SqliteDBUtil {
     public static SqliteDataSource getDaySqliteDatasource(String day,Class cls, Consumer<JdbcTemplate> initTable) {
         return getDaySqliteDatasource(day,cls,true,initTable);
     }
-    public static SqliteDataSource getDaySqliteDatasource(String day, Class cls, boolean createIfNotExist, Consumer<JdbcTemplate> initTable) {
+    public static List<File> listDBFiles() {
+        File dir = new File(getFolderPath());
+        File[] files = dir.listFiles();
+
+        List<File> list = Arrays.asList(files);
+        Collections.sort(list, new Comparator<File>() {
+            @Override
+            public int compare(File o1, File o2) {
+                String n1 = o1.getName().substring(0,o1.getName().lastIndexOf("."));
+                String n2 = o2.getName().substring(0,o2.getName().lastIndexOf("."));
+
+
+                try {
+                    return Integer.parseInt(n1) - Integer.parseInt(n2);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            }
+        });
+        return list;
+    }
+    private static String getFolderPath() {
         String folder = SysProperty.getString("archive.db.folder","../dbs");
         folder = (folder.endsWith("/") || folder.endsWith("\\"))? folder : (folder+ File.separator);
         if (!new File(folder).exists()) new File(folder).mkdirs();
+        return folder;
+    }
+    public static SqliteDataSource getDaySqliteDatasource(String day, Class cls, boolean createIfNotExist, Consumer<JdbcTemplate> initTable) {
+
+        String folder = getFolderPath();
         File dbFile = new File(folder+day+".db");
         boolean init = !dbFile.exists();
         if (init && !createIfNotExist) return null;
