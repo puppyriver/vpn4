@@ -71,8 +71,22 @@ public class OSLogFileSpout {
         try {
             doc = saxReader.read(new ByteArrayInputStream(xml.getBytes()));
         } catch (DocumentException e) {
-            logger.error(e.getMessage(), e);
-            return null;
+            int i1 = xml.indexOf("<param name=\"ExtendedAttr\"");
+            int i2 = xml.indexOf("<param",i1+5);
+            if (i1 > -1 && i2 >    i1) {
+                xml = xml.substring(0, i1) + xml.substring(i2);
+
+                try {
+                    doc = saxReader.read(new ByteArrayInputStream(xml.getBytes()));
+                } catch (Exception e1) {
+                    logger.error(e.getMessage(), e);
+                    return null;
+                }
+            } else
+                return null;
+
+
+
         }
         Element rootElement = doc.getRootElement();
         List<Element> params = rootElement.elements("param");
@@ -83,10 +97,11 @@ public class OSLogFileSpout {
                 
         OSTuple osTuple = new OSTuple();
 
-        osTuple.setVendorName(elementMap.get("ASB_EQUIP_Manufacturer").attribute("value").getValue());
+   //     osTuple.setVendorName(elementMap.get("ASB_EQUIP_Manufacturer").attribute("value").getValue());
         setParamValue(elementMap,osTuple,"ASB_EQUIP_Manufacturer",(tuple,v)->tuple.setVendorName(v));
         setParamValue(elementMap,osTuple,"X733SpecificProb",(tuple,v)->tuple.setAlarmName(v));
         setParamValue(elementMap,osTuple,"ASB_Tech_Domain",(tuple,v)->tuple.setDomainName(v));
+        setParamValue(elementMap,osTuple,"Type",(tuple,v)->tuple.setType(v));
         setParamValue(elementMap,osTuple,"ASB_EmsEventTime", (tuple, v) -> {
             try {
                 tuple.setAlarmTime(v);
@@ -94,6 +109,10 @@ public class OSLogFileSpout {
                 logger.error("Failed to parse ASB_EmsEventTime : "+v);
             }
         });
+
+        if (osTuple.getVendorName() == null)
+            setParamValue(elementMap,osTuple,"ASB_NmsEmsName",(tuple,v)->tuple.setVendorName(v));
+
         return osTuple;
 
     }

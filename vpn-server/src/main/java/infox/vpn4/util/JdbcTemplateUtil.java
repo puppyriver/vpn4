@@ -2,8 +2,8 @@ package infox.vpn4.util;
 
 
 import infox.vpn4.valueobject.BObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,7 +26,8 @@ import java.util.Map;
  * rongrong.chen@alcatel-sbell.com.cn
  */
 public class JdbcTemplateUtil {
-    private static Log logger = LogFactory.getLog(JdbcTemplateUtil.class);
+    private static Logger logger = LoggerFactory.getLogger(JdbcTemplateUtil.class);
+
     public static Object insert(JdbcTemplate jdbcTemplate, String tableName, Object obj) {
         return jdbcTemplate.execute(new PreparedStatementCreator() {
             @Override
@@ -53,7 +54,7 @@ public class JdbcTemplateUtil {
 
                 String sql = "insert into " + (tableName == null ? obj.getClass().getSimpleName() : tableName)
                         + "(" + fs + ") values (" + qs + ")";
-                logger.debug("sql = " + sql);
+//                logger.debug("sql = " + sql);
                 PreparedStatement prepareStatement =
                         connection.prepareStatement(sql);
                 // log(prepareStatement);
@@ -65,7 +66,7 @@ public class JdbcTemplateUtil {
                     try {
                         value = ReflectionUtil.getFieldValue(obj,field);
                     } catch (IllegalAccessException e) {
-                        logger.error(e, e);
+                        logger.error(e.getMessage(), e);
                     }
                     if (value != null) {
                         if (type.equals(Long.class) || type.equals(long.class)) {
@@ -150,7 +151,7 @@ public class JdbcTemplateUtil {
                     try {
                         o = ReflectionUtil.getFieldValue(obj,field);
                     } catch (IllegalAccessException e) {
-                        logger.error(e, e);
+                        logger.error(e.getMessage(), e);
                     }
                     if (o == null)
                         prepareStatement.setObject(i+1,null);
@@ -204,7 +205,7 @@ public class JdbcTemplateUtil {
             Map<String, Object> stringObjectMap = jdbcTemplate.queryForMap(sql);
             return mapToObject(stringObjectMap,cls);
         } catch (EmptyResultDataAccessException e) {
-            logger.error(e, e);
+            logger.error(e.getMessage(), e);
             return null;
         }
     }
@@ -223,7 +224,7 @@ public class JdbcTemplateUtil {
             Map<String, Object> stringObjectMap = jdbcTemplate.queryForMap("SELECT * FROM "+ cls.getSimpleName()+" where ID = ?",id);
             return mapToObject(stringObjectMap,cls);
         } catch (EmptyResultDataAccessException e) {
-            logger.error(e, e);
+            logger.error(e.getMessage(), e);
             return null;
         }
     }

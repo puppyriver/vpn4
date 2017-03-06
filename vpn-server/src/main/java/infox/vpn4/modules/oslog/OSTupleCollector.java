@@ -112,8 +112,6 @@ public class OSTupleCollector {
                     return;
                 }
                 else if (time.getTime() - startTime.getTime() > timeWindowInSecond * 1000l) {
-                    if (elements.size() > 100)
-                        System.out.println();
                     consumer.accept(elements, startTime);
                     elements.clear();
                     startTime = null;

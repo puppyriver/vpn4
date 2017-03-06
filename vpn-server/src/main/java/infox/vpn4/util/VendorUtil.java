@@ -24,6 +24,8 @@ public class VendorUtil {
         map.put("华为", "huawei");
         map.put("中兴", "zte");
         map.put("烽火", "fenghuo");
+        map.put("中盈","zhongying");
+        map.put("中兴动环","zte");
     }
     public static String getVendorDn(String name) {
          return map.get(name);

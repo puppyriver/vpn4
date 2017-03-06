@@ -19,6 +19,15 @@ public class OSTuple {
     private String alarmName;
     private String domainName;
     private Date alarmTime;
+    private String type;
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 
     public String getItemKey() {
         return vendorName+"::"+domainName+"::"+alarmName;
@@ -71,6 +80,6 @@ public class OSTuple {
     }
 
     public boolean valid() {
-        return domainName != null && vendorName != null && alarmName != null && alarmTime != null;
+        return ("1".equals(type)) && domainName != null && vendorName != null && alarmName != null && alarmTime != null;
     }
 }

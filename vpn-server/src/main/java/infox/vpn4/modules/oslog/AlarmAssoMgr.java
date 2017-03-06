@@ -57,8 +57,13 @@ public class AlarmAssoMgr implements InitializingBean {
         FAlarmItemAsso itemCopy = item;
         item = getByDn(item.getDn());
         if (item == null) {
-            item = (FAlarmItemAsso) JdbcTemplateUtil.insert(jdbcTemplate, "FAlarmItemAsso", itemCopy);
-            idmap.put(item.getId(),item);
+
+            
+       //     item = (FAlarmItemAsso) JdbcTemplateUtil.insert(jdbcTemplate, "FAlarmItemAsso", itemCopy);
+//            idmap.put(item.getId(),item);
+            item = itemCopy;
+
+
             dnmap.put(item.getDn(),item);
         } else {
             item.setCount(item.getCount()+itemCopy.getCount());

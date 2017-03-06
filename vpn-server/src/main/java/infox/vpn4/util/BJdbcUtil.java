@@ -295,7 +295,7 @@ public class BJdbcUtil {
 
         String sql = "insert into " + (tableName == null ? obj0.getClass().getSimpleName() : tableName)
                 + "(" + fs + ") values (" + qs + ")";
-        System.out.println("sql = " + sql);
+//        System.out.println("sql = " + sql);
         connection.setAutoCommit(false);
         PreparedStatement prepareStatement =
                 connection.prepareStatement(sql);
