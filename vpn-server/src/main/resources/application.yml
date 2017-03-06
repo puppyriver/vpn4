@@ -4,7 +4,7 @@ server:
 
 spring:
     profiles:
-        active: asb
+        active: dev
 
     thymeleaf:
         cache: false
@@ -13,13 +13,13 @@ spring:
         caching: false
 
     dataSource:
-      driverClassName: com.mysql.jdbc.Driver
-      url: jdbc:mysql://127.0.0.1:3306/itmanager20?useUnicode=true&characterEncoding=utf-8&autoReconnect=true
-      username: root
-      password: root
+      driverClassName: oracle.jdbc.OracleDriver
+      url: jdbc:oracle:thin:@127.0.0.1:1521:orcl
+      username: smas
+      password: smas
 
     hibernate:
-      dialect: org.hibernate.dialect.MySQLDialect
+      dialect: org.hibernate.dialect.Oracle10gDialect
       hbm2ddl.auto: update
       show_sql: false
 
