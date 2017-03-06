@@ -25,7 +25,7 @@ import java.util.List;
 
 public class AlarmAssoMgr implements InitializingBean {
     private Logger logger = LoggerFactory.getLogger(AlarmItemMgr.class);
-    private HashMap<Long,FAlarmItemAsso> idmap = new HashMap<>();
+//    private HashMap<Long,FAlarmItemAsso> idmap = new HashMap<>();
     private HashMap<String,FAlarmItemAsso> dnmap = new HashMap<>();
 
     @Autowired
@@ -45,7 +45,7 @@ public class AlarmAssoMgr implements InitializingBean {
         }
         if (list != null)
             list.forEach(item-> {
-                idmap.put(item.getId(),item);
+    //            idmap.put(item.getId(),item);
                 dnmap.put(item.getDn(),item);
             });
         logger.info("InitCache FAlarmItemAssoMgr size = {}",list == null ? null : list.size());
@@ -59,7 +59,7 @@ public class AlarmAssoMgr implements InitializingBean {
         if (item == null) {
 
             
-       //     item = (FAlarmItemAsso) JdbcTemplateUtil.insert(jdbcTemplate, "FAlarmItemAsso", itemCopy);
+  //     item = (FAlarmItemAsso) JdbcTemplateUtil.insert(jdbcTemplate, "FAlarmItemAsso", itemCopy);
 //            idmap.put(item.getId(),item);
             item = itemCopy;
 
@@ -72,9 +72,9 @@ public class AlarmAssoMgr implements InitializingBean {
         return item;
     }
 
-    public FAlarmItemAsso getById(long id) {
-        return idmap.get(id);
-    }
+//    public FAlarmItemAsso getById(long id) {
+//        return idmap.get(id);
+//    }
 
     public FAlarmItemAsso getByDn(String dn) {
         FAlarmItemAsso asso = dnmap.get(dn) ;
@@ -88,11 +88,16 @@ public class AlarmAssoMgr implements InitializingBean {
     @Transactional
     public void flush() {
 
-        idmap.values().stream()
+        dnmap.values().stream()
                 .filter(item -> "update".equals(item.getUserObject()))
                 .forEach(item-> {
                     update ++;
-                    jdbcTemplate.update("UPDATE FAlarmItemAsso set count = ? where id = ?",item.getCount(),item.getId());
+                    if (item.getId() != null)
+                        jdbcTemplate.update("UPDATE FAlarmItemAsso set count = ? where id = ?",item.getCount(),item.getId());
+                    else {
+                        FAlarmItemAsso insert = (FAlarmItemAsso)JdbcTemplateUtil.insert(jdbcTemplate, "FAlarmItemAsso", item);
+                        item.setId(insert.getId());
+                    }
                     item.setUserObject(null);
                 });
         if (update > 0)

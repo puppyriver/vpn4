@@ -24,6 +24,10 @@ public class SqliteDBUtil {
     public static SqliteDataSource getDaySqliteDatasource(String day,Class cls, Consumer<JdbcTemplate> initTable) {
         return getDaySqliteDatasource(day,cls,true,initTable);
     }
+    public static File getFolder() {
+        File dir = new File(getFolderPath());
+        return dir;
+    }
     public static List<File> listDBFiles() {
         File dir = new File(getFolderPath());
         File[] files = dir.listFiles();

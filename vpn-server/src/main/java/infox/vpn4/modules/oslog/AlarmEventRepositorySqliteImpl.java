@@ -10,12 +10,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -88,27 +84,41 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
 
 
     private ConcurrentHashMap<String,H2DataSource> cacheMap = new ConcurrentHashMap();
+    private LinkedList<String> cacheOrder = new LinkedList<>();
     private H2DataSource getCacheDS(String dayString) {
-        H2DataSource sqliteDatasource = cacheMap.get(dayString);
-        if (sqliteDatasource == null) {
-            synchronized (cacheMap) {
-                sqliteDatasource = cacheMap.get(dayString);
-                if (sqliteDatasource == null) {
-                    sqliteDatasource = new H2DataSource("jdbc:h2:mem:FAlarmRecord_"+dayString,false);
-                    JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
-                    try {
-                        init(jdbcTemplate);
-                        cacheMap.put(dayString,sqliteDatasource);
+        synchronized (cacheMap) {
+            if (cacheOrder.isEmpty() || !cacheOrder.getFirst().equals(dayString)) {
+                cacheOrder.remove(dayString);
+                cacheOrder.addFirst(dayString);
+            }
 
-                        removeLeastUsedCache();
-                    } catch (SQLException e) {
-                        logger.error(e.getMessage(),e);
+            H2DataSource sqliteDatasource = cacheMap.get(dayString);
+            if (sqliteDatasource == null) {
+                synchronized (cacheMap) {
+                    sqliteDatasource = cacheMap.get(dayString);
+                    if (sqliteDatasource == null) {
+                        sqliteDatasource = new H2DataSource("jdbc:h2:mem:FAlarmRecord_" + dayString, false);
+                        JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
+                        try {
+                            //   init(jdbcTemplate);
+                            cacheMap.put(dayString, sqliteDatasource);
+
+                            try {
+                                initAndLoadDBToCache(sqliteDatasource, dayString);
+                            } catch (Exception e) {
+                                logger.error(e.getMessage(), e);
+                            }
+
+                            removeLeastUsedCache();
+                        } catch (Exception e) {
+                            logger.error(e.getMessage(), e);
+                        }
                     }
                 }
             }
+
+            return sqliteDatasource;
         }
-        markUse(dayString);
-        return sqliteDatasource;
     }
 
     private void init(JdbcTemplate jdbcTemplate) throws SQLException {
@@ -120,33 +130,47 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
 
     private void removeLeastUsedCache() {
         try {
-            if (cacheMap.size() > 10000) {
-                Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
-                H2DataSource h2DataSource = cacheMap.get(key + "");
-                h2DataSource.release();
-                cacheMap.remove(key+"");
+            if (cacheMap.size() > 5) {
+                synchronized (cacheMap) {
+                    String last = cacheOrder.getLast();
+                    //    Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
+                    H2DataSource h2DataSource = cacheMap.get(last);
+                    h2DataSource.release();
+                    logger.info("!!!!! Release cache : {}",last);
+                    cacheMap.remove(last);
+                    cacheOrder.remove(last);
+                }
             }
         } catch (Exception e) {
             logger.error(e.getMessage(),e);
         }
     }
-    private void markUse(String day) {
 
-    }
     private void loadCache() throws Exception {
         List<File> files = SqliteDBUtil.listDBFiles();
         if (files.isEmpty()) return;
         File file = files.get(files.size() - 1);
-        SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
         String key = file.getName().substring(0, file.getName().lastIndexOf("."));
+
         H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:FAlarmRecord_"+ key,false);
         cacheMap.put(key,h2DataSource);
 
-        JdbcTemplate srcTemplate = new JdbcTemplate(ds);
-        JdbcTemplate destTemplate = new JdbcTemplate(h2DataSource);
+        initAndLoadDBToCache(h2DataSource,key);
+    }
 
-        List list = JdbcTemplateUtil.queryForList(srcTemplate, FAlarmRecord.class, "SELECT * FROM FAlarmRecord");
+    private void initAndLoadDBToCache(H2DataSource h2DataSource, String key) throws Exception {
+        JdbcTemplate destTemplate = new JdbcTemplate(h2DataSource);
+        logger.info("Init cache table : {}",key);
         init(destTemplate);
+
+        File file = new File(SqliteDBUtil.getFolder(),key+".db");
+        if (!file.exists()) return;
+        SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
+
+
+        JdbcTemplate srcTemplate = new JdbcTemplate(ds);
+        List list = JdbcTemplateUtil.queryForList(srcTemplate, FAlarmRecord.class, "SELECT * FROM FAlarmRecord");
+
         Connection connection = h2DataSource.getConnection();
         try {
             BJdbcUtil.insertObjects(connection,list,"FAlarmRecord");
@@ -154,10 +178,11 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
         } catch ( Exception e) {
             logger.error(e.getMessage(), e);
         } finally {
-         //   connection.close();
+            ds.close();
+            //   connection.close();
         }
 
-        logger.info("Init FAlarmRecord Cache : {}, size = {}",key,list.size());
+        logger.info("!!!! Init FAlarmRecord Cache : {}, size = {}",key,list.size());
     }
 
     private SqliteDataSource getDS(String dayString) {
@@ -238,7 +263,32 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException {
+        LinkedList linkedList = new LinkedList();
+        linkedList.add("1");
+        linkedList.add("2");
+        linkedList.add("3");
+        linkedList.add("4");
+
+        linkedList.remove("3");
+        linkedList.addFirst("3");
+
+        H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:abc",false);
+        JdbcTemplate jd = new JdbcTemplate(h2DataSource);
+        JdbcTemplateUtil.createTable(jd,FAlarmRecord.class,"FAlarmRecord");
+        for(int i = 0; i < 10; i++) {
+            FAlarmRecord record = new FAlarmRecord();
+
+            JdbcTemplateUtil.insert(jd, "FAlarmRecord", record);
+        }
+        h2DataSource.release();
+
+        h2DataSource = new H2DataSource("jdbc:h2:mem:abc",false);
+        jd = new JdbcTemplate(h2DataSource);
+        JdbcTemplateUtil.createTable(jd,FAlarmRecord.class,"FAlarmRecord");
+        Map<String, Object> stringObjectMap = jd.queryForMap("SELECT COUNT(*) FROM FAlarmRecord");
+
+
         ConcurrentHashMap<String,String> cacheMap = new ConcurrentHashMap<>();
         cacheMap.put("11","");
         cacheMap.put("39","");
