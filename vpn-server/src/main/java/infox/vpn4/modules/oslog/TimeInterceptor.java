@@ -6,6 +6,8 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -17,8 +19,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author blinkfox
  * @date 2016-07-04
  */
-@Aspect
+//@Aspect
 @Component
+@EnableScheduling
 public class TimeInterceptor {
 
     private static Log logger = LogFactory.getLog(TimeInterceptor.class);
@@ -39,7 +42,7 @@ public class TimeInterceptor {
         // 定义返回对象、得到方法需要的参数
         Object obj = null;
         Object[] args = joinPoint.getArgs();
-        long startTime = System.currentTimeMillis();
+        long startTime =  System.nanoTime();
 
         try {
             obj = joinPoint.proceed(args);
@@ -48,7 +51,7 @@ public class TimeInterceptor {
         }
 
         // 获取执行的方法名
-        long endTime = System.currentTimeMillis();
+        long endTime =  System.nanoTime();
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String methodName = signature.getDeclaringTypeName() + "." + signature.getName();
 
@@ -69,10 +72,19 @@ public class TimeInterceptor {
         Long t = time.get(methodName);
         if (t == null) t = 0l;
         long diffTime = endTime - startTime;
+   //     if (diffTime == 0) diffTime = 1l;
+       
         time.put(methodName,t+diffTime);
 //        if (diffTime > ONE_MINUTE) {
 //            logger.warn("-----" + methodName + " 方法执行耗时：" + diffTime + " ms");
 //        }
+    }
+
+    @Scheduled(cron="0 0/5 * * * ? ")
+    public void print() {
+        logger.info("-------------<TIMESPEND--------------");
+        logger.info(time);
+        logger.info("-------------TIMESPEND/>--------------");
     }
 
 }

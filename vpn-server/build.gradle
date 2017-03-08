@@ -7,7 +7,7 @@ apply plugin: 'spring-boot'
 sourceCompatibility = 1.8
 
 springBoot {
-    	    mainClass = 'infox.itmanager6.boot.Application'
+    	    mainClass = 'infox.vpn4.boot.OSLogAnalyst'
             layout = 'ZIP'
  }
 

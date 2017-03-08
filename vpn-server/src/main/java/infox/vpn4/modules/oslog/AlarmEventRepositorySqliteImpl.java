@@ -42,8 +42,10 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
                     .collect(Collectors.groupingBy(event -> DateUtil.getDayString(event.getAlarmTime())));
             collect.forEach((dayString,list)->{
                 SqliteDataSource sqliteDatasource = getDS(dayString);
-                JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
-                insertList(jdbcTemplate,"FAlarmRecord",list);
+                synchronized (dayString) {
+                    JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
+                    insertList(jdbcTemplate, "FAlarmRecord", list);
+                }
 
             });
 
@@ -85,7 +87,7 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
 
     private ConcurrentHashMap<String,H2DataSource> cacheMap = new ConcurrentHashMap();
     private LinkedList<String> cacheOrder = new LinkedList<>();
-    private H2DataSource getCacheDS(String dayString) {
+    public H2DataSource getCacheDS(String dayString) {
         synchronized (cacheMap) {
             if (cacheOrder.isEmpty() || !cacheOrder.getFirst().equals(dayString)) {
                 cacheOrder.remove(dayString);
@@ -121,7 +123,7 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
         }
     }
 
-    private void init(JdbcTemplate jdbcTemplate) throws SQLException {
+    public void init(JdbcTemplate jdbcTemplate) throws SQLException {
         JdbcTemplateUtil.createTable(jdbcTemplate,FAlarmRecord.class,"FAlarmRecord");
         jdbcTemplate.execute("CREATE INDEX IDX_AR_ITEMDN on FAlarmRecord(alarmItemDn)");
         jdbcTemplate.execute("CREATE INDEX IDX_AR_TIMEPOINT on FAlarmRecord(alarmTime)");
@@ -146,7 +148,7 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
         }
     }
 
-    private void loadCache() throws Exception {
+    public void loadCache() throws Exception {
         List<File> files = SqliteDBUtil.listDBFiles();
         if (files.isEmpty()) return;
         File file = files.get(files.size() - 1);
@@ -159,30 +161,34 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
     }
 
     private void initAndLoadDBToCache(H2DataSource h2DataSource, String key) throws Exception {
-        JdbcTemplate destTemplate = new JdbcTemplate(h2DataSource);
-        logger.info("Init cache table : {}",key);
-        init(destTemplate);
+        synchronized (key) {
+            JdbcTemplate destTemplate = new JdbcTemplate(h2DataSource);
+            logger.info("Init cache table : {}", key);
+            init(destTemplate);
 
-        File file = new File(SqliteDBUtil.getFolder(),key+".db");
-        if (!file.exists()) return;
-        SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
+            File file = new File(SqliteDBUtil.getFolder(), key + ".db");
+            if (!file.exists()) return;
+            SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
 
 
-        JdbcTemplate srcTemplate = new JdbcTemplate(ds);
-        List list = JdbcTemplateUtil.queryForList(srcTemplate, FAlarmRecord.class, "SELECT * FROM FAlarmRecord");
+            JdbcTemplate srcTemplate = new JdbcTemplate(ds);
+            List list = JdbcTemplateUtil.queryForList(srcTemplate, FAlarmRecord.class, "SELECT * FROM FAlarmRecord");
 
-        Connection connection = h2DataSource.getConnection();
-        try {
-            BJdbcUtil.insertObjects(connection,list,"FAlarmRecord");
-            connection.commit();
-        } catch ( Exception e) {
-            logger.error(e.getMessage(), e);
-        } finally {
-            ds.close();
-            //   connection.close();
+            if (list.size() > 0) {
+                Connection connection = h2DataSource.getConnection();
+                try {
+                    BJdbcUtil.insertObjects(connection, list, "FAlarmRecord");
+                    connection.commit();
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                } finally {
+                    ds.close();
+                    //   connection.close();
+                }
+            }
+
+            logger.info("!!!! Init FAlarmRecord Cache : {}, size = {}", key, list.size());
         }
-
-        logger.info("!!!! Init FAlarmRecord Cache : {}, size = {}",key,list.size());
     }
 
     private SqliteDataSource getDS(String dayString) {
@@ -231,7 +237,8 @@ public class AlarmEventRepositorySqliteImpl implements AlarmEventRepository {
 
         long t2 = System.currentTimeMillis() - t1;
 
-        logger.debug("spend : "+t2+"ms");
+        if (t2 > 5)
+            logger.debug("spend : "+t2+"ms");
         if (result == null || result.isEmpty())
             return query2(startTime,endTime);
         return result;

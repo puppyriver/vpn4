@@ -237,8 +237,9 @@ public class FileUtil {
 
     }
 
-    public static void main(String[] args) {
-        newFolder("newfold");
-        File file = newFile("newfold\\newfile");
+    public static void main(String[] args) throws Exception {
+        long t = System.currentTimeMillis();
+        String md5Checksum = FileUtil.getMD5Checksum("d:\\11.log");
+        System.out.println("md5Checksum = "+md5Checksum+"  - " + (System.currentTimeMillis() - t));
     }
 }

@@ -50,7 +50,7 @@ public class SqliteDBUtil {
         return list;
     }
     private static String getFolderPath() {
-        String folder = SysProperty.getString("archive.db.folder","../dbs");
+        String folder = SysProperty.getString("archive.db.folder","dbs");
         folder = (folder.endsWith("/") || folder.endsWith("\\"))? folder : (folder+ File.separator);
         if (!new File(folder).exists()) new File(folder).mkdirs();
         return folder;
