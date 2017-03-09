@@ -2,10 +2,13 @@ group 'com.51infox'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 1.8
 
-
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
 
 repositories {
     mavenLocal()
@@ -17,11 +20,47 @@ repositories {
 dependencies {
   //  compile group: 'com.alibaba.jstorm', name: 'jstorm-all', version: '2.2.1'
     // https://mvnrepository.com/artifact/com.alibaba.jstorm/jstorm-core
-    compile group: 'com.alibaba.jstorm', name: 'jstorm-core', version: '2.2.1'
+    compile 'com.alibaba.jstorm:jstorm-core:2.2.1'
 
     // https://mvnrepository.com/artifact/com.oracle/ojdbc6
     compile  'com.oracle:ojdbc6:11.2.0.4.0-atlassian-hosted'
+    compile group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.24.0'
 
 
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
+
+//shadowJar {
+//    baseName = 'spark-job'
+//    classifier = null
+//    version = null
+//    dependencies {
+//        include(dependency('org.apache.flume:flume-ng-core:1.7.0'))
+//        include(dependency('org.apache.spark:spark-streaming-kafka-0-10_2.11:2.0.2'))
+//        include(dependency('org.apache.flume:flume-ng-sdk:1.7.0'))
+//        include(dependency('org.apache.kafka:kafka-clients:0.10.1.0'))
+//    }
+//}
+
+shadowJar {
+    	    dependencies {
+        	        exclude(dependency('com.alibaba.jstorm:jstorm-core:2.2.1'))
+        	    }
+    	}
+
+
+
+buildscript {
+    repositories {
+//        jcenter()
+        mavenLocal()
+        //  mavenCentral()
+//    maven { url 'http://maven.aliyun.com/nexus/content/repositories/central/' }
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+    }
+}  
+
+
