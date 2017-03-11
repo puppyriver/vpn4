@@ -47,7 +47,9 @@ public class OSTupleCollector {
         String key = record.getAlarmItemDn();
         OSTuple osTuple = OSTuple.parseKey(key);
 
-        FAlarmItem alarmItem = alarmItemMgr.add(new FAlarmItem(key,VendorUtil.getVendorDn(osTuple.getVendorName()),osTuple.getDomainName(),osTuple.getAlarmName(),record.getOccurCount()));
+        FAlarmItem item = new FAlarmItem(key, VendorUtil.getVendorDn(osTuple.getVendorName()), osTuple.getDomainName(), osTuple.getAlarmName(),record.getSeverity(), record.getOccurCount());
+
+        FAlarmItem alarmItem = alarmItemMgr.add(item);
         try {
             analysis(alarmItem ,record);
         } catch (Exception e) {
@@ -77,7 +79,7 @@ public class OSTupleCollector {
 
     private void save(List<OSTuple> list, Date startTime) {
         Map<String, List<FAlarmRecord>> collect = list.stream()
-                .map(ele -> new FAlarmRecord(ele.getItemKey(), startTime, timeWindowInSecond, 1))
+                .map(ele -> new FAlarmRecord(ele.getItemKey(), startTime, timeWindowInSecond, ele.getSeverity(),1))
                 .collect(Collectors.groupingBy(r -> r.getAlarmItemDn()));
 
         collect.forEach((key,rs)->{

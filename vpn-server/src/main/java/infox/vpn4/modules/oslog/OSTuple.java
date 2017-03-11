@@ -20,6 +20,15 @@ public class OSTuple {
     private String domainName;
     private Date alarmTime;
     private String type;
+    private Integer severity;
+
+    public Integer getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(Integer severity) {
+        this.severity = severity;
+    }
 
     public String getType() {
         return type;

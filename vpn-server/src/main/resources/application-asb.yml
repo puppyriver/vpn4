@@ -11,9 +11,9 @@ spring:
 
     dataSource:
       driverClassName: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@135.251.223.204:1521:orcl
-      username: itmanager
-      password: itmanager
+      url: jdbc:oracle:thin:@135.251.223.146:1521:orcl
+      username: jxvpn
+      password: jxvpn
 
     hibernate:
       dialect: org.hibernate.dialect.Oracle10gDialect

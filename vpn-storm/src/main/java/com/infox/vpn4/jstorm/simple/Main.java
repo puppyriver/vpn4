@@ -18,6 +18,7 @@ public class Main {
     private Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
+        String name = args != null && args.length >0 ? args[0] :"test2";
         Config conf = new Config();
 //        conf.put(Config.STORM_LOCAL_DIR, "/Volumes/Study/data/storm");
 //        conf.put(Config.STORM_CLUSTER_MODE, "local");
@@ -39,5 +40,5 @@ public class Main {
 //        LocalCluster cluster = new LocalCluster();
 //        cluster.submitTopology("test", conf, builder.createTopology());
 
-        StormSubmitter.submitTopology("test", conf, builder.createTopology());
+        StormSubmitter.submitTopology(name, conf, builder.createTopology());
     }}

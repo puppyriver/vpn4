@@ -40,6 +40,7 @@ public class TestWordCounter extends BaseBasicBolt {
 
     public void execute(Tuple input, BasicOutputCollector collector) {
         String word = (String) input.getValues().get(0);
+        LOG.info("EXECUTE : {}",word);
         int count = 0;
         if (_counts.containsKey(word)) {
             count = _counts.get(word);

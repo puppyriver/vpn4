@@ -63,6 +63,12 @@ public class OSLogFileFastSpout {
 
                         osTuple.setType(extractValue(line,"Type"));
                     }
+                    if (line.contains("param name=\"Severity\"")) {
+
+                        String severity = extractValue(line, "Severity");
+                        if (severity != null && !severity.isEmpty())
+                        osTuple.setSeverity(Integer.parseInt(severity));
+                    }
                     if (line.contains("ASB_EmsEventTime")) {
 
                         osTuple.setAlarmTime(extractValue(line,"ASB_EmsEventTime"));

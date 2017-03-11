@@ -23,16 +23,27 @@ public class FAlarmRecord {
     private Integer timeWindowInSecond;
     //private String timeString;
     private Integer occurCount;
+    private Integer severity;
+
 
     public FAlarmRecord() {
         
     }
 
-    public FAlarmRecord(String alarmItemDn, Date alarmTime, Integer timeWindowInSecond, Integer occurCount) {
+    public FAlarmRecord(String alarmItemDn, Date alarmTime, Integer timeWindowInSecond,Integer severity, Integer occurCount) {
         this.alarmItemDn = alarmItemDn;
         this.alarmTime = alarmTime;
         this.timeWindowInSecond = timeWindowInSecond;
         this.occurCount = occurCount;
+        this.severity = severity;
+    }
+
+    public Integer getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(Integer severity) {
+        this.severity = severity;
     }
 
     public Long getId() {

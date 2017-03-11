@@ -14,16 +14,26 @@ public class FAlarmItem extends BObject {
     private String domainCode;
     private String name;
     private Integer occurCount;
+    private Integer severity;
 
     public FAlarmItem() {
     }
 
-    public FAlarmItem(String dn,String vendorDn, String domainCode, String name, Integer occurCount) {
+    public FAlarmItem(String dn,String vendorDn, String domainCode, String name,Integer severity, Integer occurCount) {
         this.dn  = dn;
         this.vendorDn = vendorDn;
         this.domainCode = domainCode;
         this.name = name;
         this.occurCount = occurCount;
+        this.severity = severity;
+    }
+
+    public Integer getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(Integer severity) {
+        this.severity = severity;
     }
 
     public String getVendorDn() {
