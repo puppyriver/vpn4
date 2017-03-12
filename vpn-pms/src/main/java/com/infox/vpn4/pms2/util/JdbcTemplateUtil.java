@@ -267,6 +267,9 @@ public class JdbcTemplateUtil {
                     if (value instanceof String && (fieldType == String.class || fieldType == String.class))
                         value = value.toString();
 
+                    if (value instanceof Number && (fieldType == java.util.Date.class))
+                        value = new java.util.Date(((Number) value).longValue());
+
                 }
 
             }

@@ -29,6 +29,10 @@ public class Configuration {
 
     private static  DataSource dataSource = null;
 
+    public static int readCacheSize = SysProperty.getInt("pms.readCacheSize",10);
+    public static int writeCacheSize = SysProperty.getInt("pms.writeCacheSize",10);
+
+    public static int maxQueryRangeInHours =  SysProperty.getInt("pms.maxQueryRangeInHours",24 * 3);
 
     public static void setDataSource(DataSource dataSource) {
         Configuration.dataSource = dataSource;

@@ -13,6 +13,8 @@ import com.infox.vpn4.pms2.api.pm.PMQuery;
 import com.infox.vpn4.pms2.api.pm.PMQueryResult;
 import com.infox.vpn4.pms2.api.pm.PMQueryUtil;
 import com.infox.vpn4.pms2.model.*;
+import com.infox.vpn4.pms2.repository.PmDataRepository;
+import com.infox.vpn4.pms2.repository.PmDataRepositorySqliteImpl;
 import com.infox.vpn4.pms2.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
 public class PmsServer implements ApplicationContextAware,InitializingBean,PMServerAPI {
     private Log logger = LogFactory.getLog(getClass());
 
+    private PmDataRepository repository = new PmDataRepositorySqliteImpl();
 
     private PMReceiver pmReceiver = null;
     private PMCache pmCache = null;
@@ -52,13 +55,14 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
     public static PmsServer inst = null;
     public PmsServer() {
         inst = this;
+        pmReceiver = new PMReceiver(repository);
     }
 
     public static PmsServer createServer() {
         PmsServer pmsServer = new PmsServer();
-        PMReceiver pmReceiver = new PMReceiver();
+        //PMReceiver pmReceiver = new PMReceiver();
         PMCache pmCache = new H2PMCache();
-        pmsServer.setPmReceiver(pmReceiver);
+     //   pmsServer.setPmReceiver(pmReceiver);
         pmsServer.setPmCache(pmCache);
         pmsServer.addPmSource(null);
 
@@ -66,6 +70,13 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
 
     }
 
+    public PmDataRepository getRepository() {
+        return repository;
+    }
+
+    public void setRepository(PmDataRepository repository) {
+        this.repository = repository;
+    }
 
     public void start() {
         for (final PMSource pmSource : pmSources) {
@@ -90,39 +101,39 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
         }
 
 
-        Runnable clearExpiredData = new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Thread.sleep(3600000l);
-                    } catch (InterruptedException e) {
-                        logger.error(e, e);
-                    }
-                    long t1 = System.currentTimeMillis();
-                    List<PM_PARAMS> paras = null;
-                    try {
-                        paras = Context.getInstance().pmParasDao.getAll();
-                    } catch (Exception e) {
-                        logger.error(e, e);
-                    }
-                    for (PM_PARAMS para : paras) {
-                        pmCache.clearExpiredDatas(para);
-                    }
-
-                    long t2 = System.currentTimeMillis() - t1;
-
-                    if (t2 > 60000) {
-                        logger.warn(" SPEND "+t2+" ms to clear all expired data.");
-                    } else {
-                        logger.info(" SPEND "+t2+" ms to clear all expired data.");
-                    }
-                    //    jdbcTemplate.execute();
-                }
-            }
-        };
-
-        new Thread(clearExpiredData).start();
+//        Runnable clearExpiredData = new Runnable() {
+//            @Override
+//            public void run() {
+//                while (true) {
+//                    try {
+//                        Thread.sleep(3600000l);
+//                    } catch (InterruptedException e) {
+//                        logger.error(e, e);
+//                    }
+//                    long t1 = System.currentTimeMillis();
+//                    List<PM_PARAMS> paras = null;
+//                    try {
+//                        paras = Context.getInstance().pmParasDao.getAll();
+//                    } catch (Exception e) {
+//                        logger.error(e, e);
+//                    }
+//                    for (PM_PARAMS para : paras) {
+//                        pmCache.clearExpiredDatas(para);
+//                    }
+//
+//                    long t2 = System.currentTimeMillis() - t1;
+//
+//                    if (t2 > 60000) {
+//                        logger.warn(" SPEND "+t2+" ms to clear all expired data.");
+//                    } else {
+//                        logger.info(" SPEND "+t2+" ms to clear all expired data.");
+//                    }
+//                    //    jdbcTemplate.execute();
+//                }
+//            }
+////        };
+//
+//        new Thread(clearExpiredData).start();
     }
 
 
@@ -276,7 +287,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
                     .map(key ->{
                         long stpId = StpKey.parse(key).getStpId();
                         stpKeys.put(stpId,key);
-                        return pmCache.getLatest(stpId);
+                        return repository.getLatest(stpId);
                      } )
                     .filter(data -> data != null)
                     .collect(Collectors.groupingBy(data-> stpKeys.get(data.getStatPointId())));
@@ -289,10 +300,11 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
         if (query.startTime == null) throw new Exception("startTime should not be null !");
 
 
-        List<PM_DATA> query1 = getPmReceiver().getRepository().query(query.startTime, query.endTime,queryKeys);
+        List<PM_DATA> query1 = repository.query(query.startTime, query.endTime,queryKeys);
 
         if (query1 != null && query1.size() > 0) {
-            Map<String, List<PM_DATA>> collect = query1.stream().collect(Collectors.groupingBy(data -> stpKeys.get(data.getStatPointId())));
+            Map<String, List<PM_DATA>> collect = query1.stream().collect(Collectors.groupingBy(data -> Optional.ofNullable(stpKeys.get(data.getStatPointId())).orElse("NULL")));
+            collect.remove("NULL");
             return collect;
             //   return query1;
         }

@@ -15,5 +15,6 @@ import java.util.List;
 public interface PmDataRepository {
     public void insert(PM_DATA event);
     public List<PM_DATA> query(Date startTime, Date endTime,List<String> stpKeys) throws Exception ;
+    public PM_DATA getLatest(long stpId);
     //public List find(String day)
 }

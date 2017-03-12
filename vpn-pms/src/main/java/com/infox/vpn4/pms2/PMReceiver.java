@@ -37,13 +37,13 @@ public class PMReceiver {
     private BatchConsumerTemplate dbPersister = null;
    // private DataSource dataSource = Configuration.getDataSource();
 
-    private PmDataRepository repository = new PmDataRepositorySqliteImpl();
+ //   private PmDataRepository repository = new PmDataRepositorySqliteImpl();
 
-    public PmDataRepository getRepository() {
-        return repository;
-    }
+//    public PmDataRepository getRepository() {
+//        return repository;
+//    }
 
-    public PMReceiver () {
+    public PMReceiver (PmDataRepository repository) {
         dbPersister = new BatchConsumerTemplate() {
             @Override
             protected void processObjects(List events) {

@@ -5,15 +5,13 @@ import com.infox.vpn4.pms2.api.pm.PMQuery;
 import com.infox.vpn4.pms2.api.pm.PMQueryResult;
 import com.infox.vpn4.pms2.model.PM_DATA;
 import com.infox.vpn4.pms2.model.PM_PARAMS;
-import com.infox.vpn4.pms2.util.H2DataSource;
-import com.infox.vpn4.pms2.util.BJdbcUtil;
-import com.infox.vpn4.pms2.util.JdbcTemplateUtil;
-import com.infox.vpn4.pms2.util.SysProperty;
+import com.infox.vpn4.pms2.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
@@ -64,29 +62,49 @@ public class H2PMCache implements PMCache {
     }
 
     private void initData() {
-        String sql = "SELECT * FROM PM_DATA where timepoint > ? order by id";
+        List<File> files = SqliteDBUtil.listDBFiles();
+
+        File file = files.get(files.size() - 1);
+        SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
+        JdbcTemplate srcTemplate = new JdbcTemplate(ds);
+        List<PM_DATA> list = null;
         try {
-            JdbcTemplate jdbcTemplate = null;
-            if (this.dbDataSource != null) {
-                jdbcTemplate = new JdbcTemplate(this.dataSource);
-            } else {
-                jdbcTemplate = Configuration.getJdbcTemplate();
-            }
-            Date date = new Date(System.currentTimeMillis() - 3600l * 1000l * 6);
-            List<PM_DATA> datas = JdbcTemplateUtil.queryForList(jdbcTemplate,PM_DATA.class,sql, date);
-            logger.info("pmdata size = "+datas.size()+" to insert to cache");
-            int i = 0;
-            for (PM_DATA data : datas) {
-                this.addToCache(data);
-//                if (i++ % 100 == 0) {
-//                    logger.info(i+" add to cache");
-//                }
-            }
-            logger.info("Init Cache pmdata size = "+datas.size());
-            earliestTime = date;
+            list = JdbcTemplateUtil.queryForList(srcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA");
         } catch (Exception e) {
-            logger.error(e, e);
+            logger.error(e,e);
         }
+
+        for (PM_DATA pm_data : list) {
+            this.addToCache(pm_data);
+        }
+        ds.close();
+
+
+
+
+//        String sql = "SELECT * FROM PM_DATA where timepoint > ? order by id";
+//        try {
+//            JdbcTemplate jdbcTemplate = null;
+//            if (this.dbDataSource != null) {
+//                jdbcTemplate = new JdbcTemplate(this.dataSource);
+//            } else {
+//                jdbcTemplate = Configuration.getJdbcTemplate();
+//            }
+//            Date date = new Date(System.currentTimeMillis() - 3600l * 1000l * 6);
+//            List<PM_DATA> datas = JdbcTemplateUtil.queryForList(jdbcTemplate,PM_DATA.class,sql, date);
+//            logger.info("pmdata size = "+datas.size()+" to insert to cache");
+//            int i = 0;
+//            for (PM_DATA data : datas) {
+//                this.addToCache(data);
+////                if (i++ % 100 == 0) {
+////                    logger.info(i+" add to cache");
+////                }
+//            }
+//            logger.info("Init Cache pmdata size = "+datas.size());
+//            earliestTime = date;
+//        } catch (Exception e) {
+//            logger.error(e, e);
+//        }
 
 
     }
