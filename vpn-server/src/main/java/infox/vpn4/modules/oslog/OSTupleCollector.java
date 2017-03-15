@@ -1,5 +1,6 @@
 package infox.vpn4.modules.oslog;
 
+import infox.vpn4.util.SysProperty;
 import infox.vpn4.util.VendorUtil;
 import infox.vpn4.valueobject.FAlarmItem;
 import infox.vpn4.valueobject.FAlarmItemAsso;
@@ -19,7 +20,7 @@ public class OSTupleCollector {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private TimeWindowBuffer buffer = null;
     private final Integer timeWindowInSecond = 60;
-    private final Integer sampleTimeWindowInMin = 5;
+    private final Integer sampleTimeWindowInMin = SysProperty.getInt("oslog.analyst.timewindow",5);
 
     private AlarmItemMgr alarmItemMgr = null;
     private AlarmEventRepository alarmEventRepository = null;
@@ -29,6 +30,7 @@ public class OSTupleCollector {
         this.alarmItemMgr = alarmItemMgr;
         this.alarmEventRepository = alarmEventRepository;
         this.alarmAssoMgr = alarmAssoMgr;
+        logger.info("Timewindow = {} minutes",sampleTimeWindowInMin);
     }
 
     public void offer(OSTuple alarm ) {
