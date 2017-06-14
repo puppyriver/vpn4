@@ -221,7 +221,11 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
             H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:PM_DATA_"+ key,false);
             cacheMap.put(key,h2DataSource);
-            initAndLoadDBToCache(h2DataSource,key,pm_data -> addToLatestCache(pm_data));
+            try {
+                initAndLoadDBToCache(h2DataSource, key, pm_data -> addToLatestCache(pm_data));
+            } catch (Exception e) {
+                logger.error("Load DB File : "+file.getAbsolutePath()+" ERROR !",e);
+            }
         }
         //File file = files.get(files.size() - 1);
     }
