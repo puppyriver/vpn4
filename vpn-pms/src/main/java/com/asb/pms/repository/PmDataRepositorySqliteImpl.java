@@ -129,7 +129,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
     private ConcurrentHashMap<String,H2DataSource> cacheMap = new ConcurrentHashMap();
     private LinkedList<String> writeCacheOrder = new LinkedList<>();
     private LinkedList<String> readCacheOrder = new LinkedList<>();
-    public H2DataSource getCacheDS(String dayString,boolean write,boolean readForceGet) {
+    public synchronized H2DataSource getCacheDS(String dayString,boolean write,boolean readForceGet) {
         synchronized (cacheMap) {
             if (write) {
                 if (readCacheOrder.contains(dayString)) {
@@ -137,7 +137,14 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                 }
                 moveToFirst(writeCacheOrder,dayString);
             } else {
-                moveToFirst(readCacheOrder,dayString);
+
+                if (writeCacheOrder.contains(dayString)) {
+                    moveToFirst(writeCacheOrder,dayString);
+                } else{
+                    moveToFirst(readCacheOrder,dayString);
+                }
+
+
             }
 
 
@@ -186,8 +193,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     String last = writeCacheOrder.getLast();
                     //    Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
                     H2DataSource h2DataSource = cacheMap.get(last);
-                    h2DataSource.release();
                     logger.info("!!!!! Release write cache : {}",last);
+                    h2DataSource.release();
                     cacheMap.remove(last);
                     writeCacheOrder.remove(last);
                 }
@@ -204,8 +211,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     String last = readCacheOrder.getLast();
                     //    Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
                     H2DataSource h2DataSource = cacheMap.get(last);
-                    h2DataSource.release();
                     logger.info("!!!!! Release read cache : {}",last);
+                    h2DataSource.release();
                     cacheMap.remove(last);
                     readCacheOrder.remove(last);
                 }
