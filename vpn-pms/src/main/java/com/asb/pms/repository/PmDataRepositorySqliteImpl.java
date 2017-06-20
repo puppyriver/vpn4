@@ -34,6 +34,11 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
     private OrderedConcurrentHashMap<String,SqliteDataSource> sqliteDBMap = new OrderedConcurrentHashMap();
 
     public PmDataRepositorySqliteImpl() {
+        logger.info("Configuration.writeCacheSize = "+Configuration.writeCacheSize);
+        logger.info("Configuration.readCacheSize = "+Configuration.readCacheSize);
+        logger.info("Configuration.maxQueryRangeInHours = "+Configuration.maxQueryRangeInHours);
+        logger.info("Configuration.maxQueryNoExtractInHours = "+Configuration.maxQueryNoExtractInHours);
+        logger.info("Configuration.maxSqliteConnections = "+Configuration.maxSqliteConnections);
         try {
             loadCache();
         } catch (Exception e) {
@@ -116,8 +121,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
     private void moveToFirst(LinkedList<String> order ,String cacheName) {
         if (order.isEmpty() || !order.getFirst().equals(cacheName)) {
-            readCacheOrder.remove(cacheName);
-            readCacheOrder.addFirst(cacheName);
+            order.remove(cacheName);
+            order.addFirst(cacheName);
         }
     }
 
@@ -174,6 +179,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
     private void removeLeastUsedCache() {
 
+        logger.info("writeCacheOrder size = {}",writeCacheOrder.size());
         try {
             if (writeCacheOrder.size() > Configuration.writeCacheSize) {
                 synchronized (cacheMap) {
@@ -181,7 +187,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     //    Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
                     H2DataSource h2DataSource = cacheMap.get(last);
                     h2DataSource.release();
-                    logger.info("!!!!! Release cache : {}",last);
+                    logger.info("!!!!! Release write cache : {}",last);
                     cacheMap.remove(last);
                     writeCacheOrder.remove(last);
                 }
@@ -199,7 +205,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     //    Integer key = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
                     H2DataSource h2DataSource = cacheMap.get(last);
                     h2DataSource.release();
-                    logger.info("!!!!! Release cache : {}",last);
+                    logger.info("!!!!! Release read cache : {}",last);
                     cacheMap.remove(last);
                     readCacheOrder.remove(last);
                 }
@@ -282,7 +288,10 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                         sqliteDBMap.put(dayString, sqliteDatasource);
                         if (sqliteDBMap.size() > Configuration.maxSqliteConnections) {
                             try {
-                                sqliteDBMap.peekFirst().close();
+
+                                SqliteDataSource sqliteDataSource = sqliteDBMap.peekFirst();
+                                logger.info("close db :"+sqliteDataSource);
+                                sqliteDataSource.close();
                             } catch (Exception e) {
                                 logger.error(e.getMessage(), e);
                             }

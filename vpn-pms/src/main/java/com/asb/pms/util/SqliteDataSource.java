@@ -22,12 +22,20 @@ import java.util.concurrent.Executor;
  */
 public class SqliteDataSource  extends AbstractDataSource implements SmartDataSource ,DBTypeMapper{
     private Connection connection = null;
+    private String path = null;
     private Log logger = LogFactory.getLog(getClass());
     public SqliteDataSource(File file) {
         this(file.getAbsolutePath());
     }
+
+    @Override
+    public String toString() {
+        return "SqliteDataSource{path='" + path +'}';
+    }
+
     public SqliteDataSource(String filePath) {
         try {
+            this.path = filePath;
             Class.forName("org.sqlite.JDBC");
             connection =  new SqliteConnection(DriverManager.getConnection("jdbc:sqlite:"+filePath, null, null));
          //   connection.setAutoCommit(false);
