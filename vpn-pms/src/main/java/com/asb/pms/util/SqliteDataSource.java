@@ -30,7 +30,7 @@ public class SqliteDataSource  extends AbstractDataSource implements SmartDataSo
 
     @Override
     public String toString() {
-        return "SqliteDataSource{path='" + path +'}';
+        return super.toString()+"{path='" + path +'}';
     }
 
     public SqliteDataSource(String filePath) {
@@ -47,7 +47,7 @@ public class SqliteDataSource  extends AbstractDataSource implements SmartDataSo
     }
 
     public void close() {
-        logger.info("sqlite db close : "+this.path);
+        logger.info("sqlite db close : "+this.toString());
         if (connection != null) {
             try {
                 connection.close();

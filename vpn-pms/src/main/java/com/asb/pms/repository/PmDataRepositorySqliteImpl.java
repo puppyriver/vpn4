@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class PmDataRepositorySqliteImpl implements PmDataRepository {
     private Logger logger = LoggerFactory.getLogger(PmDataRepositorySqliteImpl.class);
 
-    private OrderedConcurrentHashMap<String,SqliteDataSource> sqliteDBMap = new OrderedConcurrentHashMap();
+//    private OrderedConcurrentHashMap<String,SqliteDataSource> sqliteDBMap = new OrderedConcurrentHashMap();
 
     public PmDataRepositorySqliteImpl() {
         logger.info("Configuration.writeCacheSize = "+Configuration.writeCacheSize);
@@ -76,13 +76,18 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     .collect(Collectors.groupingBy(event -> getPartitionKey(event.getTimePoint())));
             collect.forEach((dayString,list)->{
                 SqliteDataSource sqliteDatasource = getDS(dayString,true,true);
-                synchronized (dayString) {
-                    JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
-                    insertList(jdbcTemplate, "PM_DATA", list);
+                try {
+                    synchronized (dayString) {
+                        JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
+                        insertList(jdbcTemplate, "PM_DATA", list);
+                    }
+                } catch (Exception e) {
+                    logger.error(e.getMessage(),e);
+                } finally {
+                    sqliteDatasource.close();
                 }
 
             });
-
 
         }
     };
@@ -160,6 +165,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                                 //   init(jdbcTemplate);
                                 logger.info("Add cache : {}, write : {}", dayString, write);
                                 cacheMap.put(dayString, sqliteDatasource);
+                                logger.info("CacheMap="+cacheMap);
 
                                 try {
                                     initAndLoadDBToCache(sqliteDatasource, dayString, null);
@@ -262,60 +268,77 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 //            SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
             if (ds == null) return;
 
+            try {
 
-            JdbcTemplate srcTemplate = new JdbcTemplate(ds);
-            List list = JdbcTemplateUtil.queryForList(srcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA");
+                JdbcTemplate srcTemplate = new JdbcTemplate(ds);
+                List list = JdbcTemplateUtil.queryForList(srcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA");
 
-            if (list.size() > 0) {
-                Connection connection = h2DataSource.getConnection();
-                try {
-                    BJdbcUtil.insertObjects(connection, list, "PM_DATA");
-                    connection.commit();
-                } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
-                } finally {
-                    ds.close();
-                    //   connection.close();
+                if (list.size() > 0) {
+                    Connection connection = h2DataSource.getConnection();
+                    try {
+                        BJdbcUtil.insertObjects(connection, list, "PM_DATA");
+                        connection.commit();
+                    } catch (Exception e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                    if (consumer != null) {
+                        list.stream().forEach(consumer);
+                    }
+
+                    logger.info("!!!! Init PM_DATA Cache : {}, size = {}", key, list.size());
                 }
-                if (consumer != null) {
-                    list.stream().forEach(consumer);
-                }
+            } catch (Exception e) {
+                logger.error(e.getMessage(),e);
+            }finally {
+                ds.close();
+                //   connection.close();
             }
 
-            logger.info("!!!! Init PM_DATA Cache : {}, size = {}", key, list.size());
+
         }
     }
 
     private SqliteDataSource getDS(String dayString,boolean createIfNotExist,boolean pool) {
-        SqliteDataSource sqliteDatasource = sqliteDBMap.get(dayString);
-        if (sqliteDatasource == null) {
-            synchronized (sqliteDBMap) {
-                sqliteDatasource = sqliteDBMap.get(dayString);
-                if (sqliteDatasource == null) {
-                    if (!createIfNotExist) return null;
-                    sqliteDatasource = SqliteDBUtil.getDaySqliteDatasource(dayString, PM_DATA.class, jdbcTemplate -> {
-                        jdbcTemplate.execute("CREATE INDEX IDX_AR_ITEMDN on PM_DATA(statPointId)");
-                        jdbcTemplate.execute("CREATE INDEX IDX_AR_TIMEPOINT on PM_DATA(timePoint)");
-                    });
-                    if (pool) {
-                        sqliteDBMap.put(dayString, sqliteDatasource);
-                        if (sqliteDBMap.size() > Configuration.maxSqliteConnections) {
-                            try {
-
-                                SqliteDataSource sqliteDataSource = sqliteDBMap.peekFirst();
-                                logger.info("close db :"+sqliteDataSource);
-                                sqliteDataSource.close();
-                            } catch (Exception e) {
-                                logger.error(e.getMessage(), e);
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
-        return sqliteDatasource;
+        return SqliteDBUtil.getDaySqliteDatasource(dayString,PM_DATA.class,createIfNotExist,jdbcTemplate -> {
+                            jdbcTemplate.execute("CREATE INDEX IDX_AR_ITEMDN on PM_DATA(statPointId)");
+                            jdbcTemplate.execute("CREATE INDEX IDX_AR_TIMEPOINT on PM_DATA(timePoint)");
+                        });
     }
+//    private SqliteDataSource getDS(String dayString,boolean createIfNotExist,boolean pool) {
+//        SqliteDataSource sqliteDatasource = sqliteDBMap.get(dayString);
+//        if (sqliteDatasource == null) {
+//            synchronized (sqliteDBMap) {
+//                sqliteDatasource = sqliteDBMap.get(dayString);
+//                if (sqliteDatasource == null) {
+//                    if (!createIfNotExist) {
+//                        sqliteDatasource = SqliteDBUtil.getDaySqliteDatasource(dayString,PM_DATA.class,false,null);
+//                    }
+//                    else {
+//                        sqliteDatasource = SqliteDBUtil.getDaySqliteDatasource(dayString, PM_DATA.class, jdbcTemplate -> {
+//                            jdbcTemplate.execute("CREATE INDEX IDX_AR_ITEMDN on PM_DATA(statPointId)");
+//                            jdbcTemplate.execute("CREATE INDEX IDX_AR_TIMEPOINT on PM_DATA(timePoint)");
+//                        });
+//                    }
+//                    if (pool) {
+//                        sqliteDBMap.put(dayString, sqliteDatasource);
+//                        logger.info("put "+dayString+" , sqliteDBMap = "+sqliteDBMap.toString());
+//                        if (sqliteDBMap.size() > Configuration.maxSqliteConnections) {
+//                            try {
+//
+//                                SqliteDataSource _sqliteDataSource = sqliteDBMap.peekFirst();
+//                                logger.info("close db :"+_sqliteDataSource);
+//                                _sqliteDataSource.close();
+//                            } catch (Exception e) {
+//                                logger.error(e.getMessage(), e);
+//                            }
+//                        }
+//
+//                    }
+//                }
+//            }
+//        }
+//        return sqliteDatasource;
+//    }
     @Override
     public List<PM_DATA> query(Date startTime,Date endTime,List<String> stpKeys) throws Exception {
         if (endTime.before(startTime)) {
@@ -356,7 +379,9 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             result = new ArrayList();
             for (int i = 0; i < partitionKeys.size(); i++) {
                 String key = partitionKeys.get(i);
+                boolean useCache = true;
                 DataSource ds = getCacheDS(key,false,false);
+
 
                 if (ds == null) {
                     ds = getDS(key,false,false);
@@ -385,7 +410,9 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     if (list1 != null)
                         result.addAll(list1);
                 } finally {
-                    if (ds instanceof SqliteDataSource && !sqliteDBMap.contains(key))
+                    if (ds instanceof SqliteDataSource
+                            //&& !sqliteDBMap.contains(key)
+                            )
                         ((SqliteDataSource) ds).close();
                 }
 
