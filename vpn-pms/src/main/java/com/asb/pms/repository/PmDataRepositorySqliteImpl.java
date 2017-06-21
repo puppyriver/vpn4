@@ -96,7 +96,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             connection.commit();
       //      logger.debug("commit : {} objects",list.size());
         } catch ( Exception e) {
-            logger.error(e.getMessage(), e);
+            logger.error(e.getMessage()+" :: datasource:"+jdbcTemplate.getDataSource(), e);
             try {
                 connection.rollback();
             } catch (SQLException e1) {
@@ -149,27 +149,32 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
 
             H2DataSource sqliteDatasource = cacheMap.get(dayString);
-            if (sqliteDatasource == null && (write || readForceGet)) {
-                synchronized (cacheMap) {
-                    sqliteDatasource = cacheMap.get(dayString);
-                    if (sqliteDatasource == null) {
-                        sqliteDatasource = new H2DataSource("jdbc:h2:mem:PM_DATA_" + dayString, false);
-                       // JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
-                        try {
-                            //   init(jdbcTemplate);
-                            cacheMap.put(dayString, sqliteDatasource);
-
+            if (sqliteDatasource == null) {
+                if (write || readForceGet) {
+                    synchronized (cacheMap) {
+                        sqliteDatasource = cacheMap.get(dayString);
+                        if (sqliteDatasource == null) {
+                            sqliteDatasource = new H2DataSource("jdbc:h2:mem:PM_DATA_" + dayString, false);
+                            // JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
                             try {
-                                initAndLoadDBToCache(sqliteDatasource, dayString,null);
+                                //   init(jdbcTemplate);
+                                logger.info("Add cache : {}, write : {}", dayString, write);
+                                cacheMap.put(dayString, sqliteDatasource);
+
+                                try {
+                                    initAndLoadDBToCache(sqliteDatasource, dayString, null);
+                                } catch (Exception e) {
+                                    logger.error(e.getMessage(), e);
+                                }
+
+                                removeLeastUsedCache();
                             } catch (Exception e) {
                                 logger.error(e.getMessage(), e);
                             }
-
-                            removeLeastUsedCache();
-                        } catch (Exception e) {
-                            logger.error(e.getMessage(), e);
                         }
                     }
+                } else {
+                     readCacheOrder.remove(dayString);
                 }
             }
 
@@ -186,7 +191,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
     private void removeLeastUsedCache() {
 
-        logger.info("writeCacheOrder size = {}",writeCacheOrder.size());
+        logger.info("writeCacheOrder size = {}",writeCacheOrder.stream().reduce((a1,a2)->a1+","+a2));
         try {
             if (writeCacheOrder.size() > Configuration.writeCacheSize) {
                 synchronized (cacheMap) {
@@ -205,6 +210,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             logger.error(e.getMessage(),e);
         }
 
+        logger.info("readCacheOrder size = {}",readCacheOrder.stream().reduce((a1,a2)->a1+","+a2));
         try {
             if (readCacheOrder.size() > Configuration.readCacheSize) {
                 synchronized (cacheMap) {
@@ -361,15 +367,19 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     jdbcTemplate = new JdbcTemplate(ds);
                     List<PM_DATA> list1 = null;
 
-                    if (i == 0) {
-                        list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where  timePoint >= ? and statPointId in "+inIds, startTime );
-                    } else if (i == partitionKeys.size() - 1) {
-                        list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where timePoint <= ?  and statPointId in "+inIds, endTime );
-                    } else {
-                        list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where statPointId in "+inIds);
+                    try {
+                        if (i == 0) {
+                            list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where  timePoint >= ? and statPointId in " + inIds, startTime);
+                        } else if (i == partitionKeys.size() - 1) {
+                            list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where timePoint <= ?  and statPointId in " + inIds, endTime);
+                        } else {
+                            list1 = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where statPointId in " + inIds);
+                        }
+                    } catch (Throwable e) {
+                        logger.error(e.getMessage(),e);
                     }
 
-                    if (extract && list1.size() > 24) {
+                    if (list1 != null && extract && list1.size() > 24) {
                         list1 = extract(list1,24);
                     }
                     if (list1 != null)
