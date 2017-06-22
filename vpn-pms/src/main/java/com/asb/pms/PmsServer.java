@@ -161,15 +161,15 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
     }
 
 
-    private List<PM_DATA> buffer = new ArrayList<>();
+  //  private List<PM_DATA> buffer = new ArrayList<>();
     int idx = 0;
     @Override
     public PM_DATA sendData(PM_DATA pm_data) {
-        buffer.add(pm_data);
-        if (buffer.size() == 10) {
-        //    ObjectUtil.saveObject("pmBuffer_"+(idx++),buffer);
-            buffer.clear();
-        }
+//        buffer.add(pm_data);
+//        if (buffer.size() == 10) {
+//        //    ObjectUtil.saveObject("pmBuffer_"+(idx++),buffer);
+//            buffer.clear();
+//        }
         pmReceiver.push(pm_data);
         return pm_data;
     }

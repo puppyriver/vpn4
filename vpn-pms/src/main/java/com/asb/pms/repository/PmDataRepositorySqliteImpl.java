@@ -434,7 +434,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         long t2 = System.currentTimeMillis() - t1;
 
         if (t2 > 5)
-            logger.info("spend : "+t2+"ms");
+            logger.info("query spend : "+t2+"ms");
         return result;
     }
 
