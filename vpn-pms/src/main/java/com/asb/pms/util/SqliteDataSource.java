@@ -38,7 +38,7 @@ public class SqliteDataSource  extends AbstractDataSource implements SmartDataSo
             this.path = filePath;
             Class.forName("org.sqlite.JDBC");
             connection =  new SqliteConnection(DriverManager.getConnection("jdbc:sqlite:"+filePath, null, null));
-            logger.info("sqlite db open : "+this.path);
+     //       logger.info("sqlite db open : "+this.path);
          //   connection.setAutoCommit(false);
         } catch (Exception e) {
             logger.error(e,e);
@@ -47,7 +47,7 @@ public class SqliteDataSource  extends AbstractDataSource implements SmartDataSo
     }
 
     public void close() {
-        logger.info("sqlite db close : "+this.toString());
+       // logger.info("sqlite db close : "+this.toString());
         if (connection != null) {
             try {
                 connection.close();

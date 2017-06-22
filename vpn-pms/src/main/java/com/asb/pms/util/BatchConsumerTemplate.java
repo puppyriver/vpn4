@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -56,7 +57,7 @@ public abstract class BatchConsumerTemplate<T> extends Thread{
                     events.add(queue.take());
                 }
 
-                processObjects(events);
+                processObjects(events,queue);
 
             } catch (Throwable e) {
                 logger.error(e,e);
@@ -66,7 +67,7 @@ public abstract class BatchConsumerTemplate<T> extends Thread{
 
     }
 
-    protected abstract void processObjects(List<T> events);
+    protected abstract void processObjects(List<T> events, Queue<T> queue);
 
 
 }

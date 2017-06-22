@@ -12,6 +12,7 @@ import javax.script.ScriptException;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -35,8 +36,10 @@ public class PMReceiver {
     public PMReceiver (PmDataRepository repository) {
         dbPersister = new BatchConsumerTemplate() {
             @Override
-            protected void processObjects(List events) {
-
+            protected void processObjects(List events, Queue  queue) {
+                if (!Thread.currentThread().getName().contains("PMReceiver-Consumer"))
+                    Thread.currentThread().setName("PMReceiver-Consumer");
+                long t1= System.currentTimeMillis();
                 PMReceiver.this.logger.debug("processObjects {}",events.size());
                 events.stream().forEach(event->{
                     PM_STATPOINT statpoint =  findOrCreateStatepoint((PM_DATA)event);
@@ -46,6 +49,11 @@ public class PMReceiver {
                     Context.getInstance().getServer().notifyPmDataCreate(pm_data);
                     handle(statpoint.getParamId(),pm_data);
                 });
+
+
+                long t = System.currentTimeMillis() - t1;
+                logger.info("processObject0 size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
+
             }
         };
 

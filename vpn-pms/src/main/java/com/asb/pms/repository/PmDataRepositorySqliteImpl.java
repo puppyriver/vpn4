@@ -71,23 +71,29 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
     BatchConsumerTemplate<PM_DATA> template = new BatchConsumerTemplate<PM_DATA>(1000) {
         @Override
-        protected void processObjects(List<PM_DATA> events) {
+        protected void processObjects(List<PM_DATA> events, Queue<PM_DATA> queue) {
+            if (!Thread.currentThread().getName().contains("BatchConsumerTemplate2"))
+                Thread.currentThread().setName("BatchConsumerTemplate2");
+            long t1 = System.currentTimeMillis();
             Map<String, List<PM_DATA>> collect = events.stream()
                     .collect(Collectors.groupingBy(event -> getPartitionKey(event.getTimePoint())));
-            collect.forEach((dayString,list)->{
-                SqliteDataSource sqliteDatasource = getDS(dayString,true,true);
-                try {
-                    synchronized (dayString) {
+            collect.forEach((dayString,list)-> {
+                synchronized (dayString) {
+                    SqliteDataSource sqliteDatasource = getDS(dayString, true, true);
+                    try {
                         JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
                         insertList(jdbcTemplate, "PM_DATA", list);
+
+                    } catch(Exception e){
+                        logger.error(e.getMessage(), e);
+                    } finally{
+                        sqliteDatasource.close();
                     }
-                } catch (Exception e) {
-                    logger.error(e.getMessage(),e);
-                } finally {
-                    sqliteDatasource.close();
                 }
 
             });
+            long t = System.currentTimeMillis() - t1;
+            logger.info("processObject size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
 
         }
     };
@@ -153,22 +159,22 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             }
 
 
-            H2DataSource sqliteDatasource = cacheMap.get(dayString);
-            if (sqliteDatasource == null) {
+            H2DataSource h2Datasource = cacheMap.get(dayString);
+            if (h2Datasource == null) {
                 if (write || readForceGet) {
                     synchronized (cacheMap) {
-                        sqliteDatasource = cacheMap.get(dayString);
-                        if (sqliteDatasource == null) {
-                            sqliteDatasource = new H2DataSource("jdbc:h2:mem:PM_DATA_" + dayString, false);
+                        h2Datasource = cacheMap.get(dayString);
+                        if (h2Datasource == null) {
+                            h2Datasource = new H2DataSource("jdbc:h2:mem:PM_DATA_" + dayString, false);
                             // JdbcTemplate jdbcTemplate = new JdbcTemplate(sqliteDatasource);
                             try {
                                 //   init(jdbcTemplate);
                                 logger.info("Add cache : {}, write : {}", dayString, write);
-                                cacheMap.put(dayString, sqliteDatasource);
+                                cacheMap.put(dayString, h2Datasource);
                                 logger.info("CacheMap="+cacheMap);
 
                                 try {
-                                    initAndLoadDBToCache(sqliteDatasource, dayString, null);
+                                    initAndLoadDBToCache(h2Datasource, dayString, null);
                                 } catch (Exception e) {
                                     logger.error(e.getMessage(), e);
                                 }
@@ -184,7 +190,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                 }
             }
 
-            return sqliteDatasource;
+            return h2Datasource;
         }
     }
 
@@ -248,6 +254,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             cacheMap.put(key,h2DataSource);
             try {
                 initAndLoadDBToCache(h2DataSource, key, pm_data -> addToLatestCache(pm_data));
+                logger.info("load {}, totalMemroy {}",key,Runtime.getRuntime().totalMemory() / (1024l * 1024l)+"MB");
+                logger.info("load {}, usedMemroy {}",key,(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024l * 1024l)+"MB");
             } catch (Exception e) {
                 logger.error("Load DB File : "+file.getAbsolutePath()+" ERROR !",e);
             }
@@ -260,7 +268,6 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             JdbcTemplate destTemplate = new JdbcTemplate(h2DataSource);
             logger.info("Init cache table : {}", key);
             init(destTemplate);
-
             SqliteDataSource ds = SqliteDBUtil.getDaySqliteDatasource(key,PM_DATA.class,false,null);
 
 //            File file = new File(SqliteDBUtil.getFolder(), key + ".db");
@@ -341,6 +348,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 //    }
     @Override
     public List<PM_DATA> query(Date startTime,Date endTime,List<String> stpKeys) throws Exception {
+        logger.info("query :: startTime = {}, endTime = {} ,keys = {}",startTime,endTime,stpKeys == null ? null : stpKeys.stream().reduce((a1,a2)->a1+","+a2));
+
         if (endTime.before(startTime)) {
             throw new Exception("start time can not before end time");
         }
@@ -371,7 +380,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             jdbcTemplate = new JdbcTemplate(ds);
             List<PM_DATA> list = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where timePoint <= ? and timePoint >= ? and statPointId in "+inIds, endTime, startTime);
             if (list.isEmpty())
-            logger.debug("Query : start {}, end {} ,result = {}",startTime,endTime,list.size());
+            logger.debug("1::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list.size());
             result = list;
         } else {
 
@@ -403,6 +412,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     } catch (Throwable e) {
                         logger.error(e.getMessage(),e);
                     }
+                    logger.debug("2::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list1 == null ? null : list1.size());
 
                     if (list1 != null && extract && list1.size() > 24) {
                         list1 = extract(list1,24);
@@ -424,7 +434,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         long t2 = System.currentTimeMillis() - t1;
 
         if (t2 > 5)
-            logger.debug("spend : "+t2+"ms");
+            logger.info("spend : "+t2+"ms");
         return result;
     }
 
@@ -464,50 +474,25 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
 
     public static void main(String[] args) throws SQLException {
-        int i1 = 10; int j = 3;
-        float b = i1/(float)j;
-        List<Integer> list = Arrays.asList(1,2,3,4,5,6);
 
-        list.stream().map(i->i>3).peek(i->System.out.println(i));
-        System.out.println();
+        List list = new ArrayList();
 
-        list.sort((o1,o2)->o2 - o1);
-        System.out.println("list = " + list);
+        for (int j = 0 ; j < 1000; j++) {
+            System.out.println(j);
+            H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:abc_"+j,false);
+            list.add(h2DataSource);
+            JdbcTemplate jd = new JdbcTemplate(h2DataSource);
+            JdbcTemplateUtil.createTable(jd,PM_DATA.class,"PM_DATA");
+            for(int i = 0; i < 10000; i++) {
+                PM_DATA record = new PM_DATA();
 
-        LinkedList linkedList = new LinkedList();
-        linkedList.add("1");
-        linkedList.add("2");
-        linkedList.add("3");
-        linkedList.add("4");
-
-        linkedList.remove("3");
-        linkedList.addFirst("3");
-
-        H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:abc",false);
-        JdbcTemplate jd = new JdbcTemplate(h2DataSource);
-        JdbcTemplateUtil.createTable(jd,PM_DATA.class,"PM_DATA");
-        for(int i = 0; i < 10; i++) {
-            PM_DATA record = new PM_DATA();
-
-            JdbcTemplateUtil.insert(jd, "PM_DATA", record);
+                JdbcTemplateUtil.insert(jd, "PM_DATA", record);
+            }
+            h2DataSource.release();
+            list.remove(h2DataSource);
         }
-        h2DataSource.release();
-
-        h2DataSource = new H2DataSource("jdbc:h2:mem:abc",false);
-        jd = new JdbcTemplate(h2DataSource);
-        JdbcTemplateUtil.createTable(jd,PM_DATA.class,"PM_DATA");
-        Map<String, Object> stringObjectMap = jd.queryForMap("SELECT COUNT(*) FROM PM_DATA");
 
 
-        ConcurrentHashMap<String,String> cacheMap = new ConcurrentHashMap<>();
-        cacheMap.put("11","");
-        cacheMap.put("39","");
-        cacheMap.put("3","");
-        cacheMap.put("12","");
-        cacheMap.put("31","");
-        cacheMap.put("44","");
-        Integer result = cacheMap.reduceKeys(Long.MAX_VALUE, k -> Integer.parseInt(k), (k1, k2) -> k1 < k2 ? k1 : k2);
 
-        System.out.println("result = " + result);
     }
 }
