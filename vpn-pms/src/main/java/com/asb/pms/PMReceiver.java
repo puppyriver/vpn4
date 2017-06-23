@@ -52,7 +52,8 @@ public class PMReceiver {
 
 
                 long t = System.currentTimeMillis() - t1;
-                logger.info("processObject0 size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
+                if (t > 5000)
+                    logger.info("processObject0 size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
 
             }
         };

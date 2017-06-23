@@ -93,7 +93,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
             });
             long t = System.currentTimeMillis() - t1;
-            logger.info("processObject size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
+            if (t > 5000)
+                logger.info("processObject size = "+events.size()+" spend time : "+t+"ms, "+queue.size()+" left");
 
         }
     };
@@ -379,8 +380,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             H2DataSource ds = getCacheDS(start,false,true);
             jdbcTemplate = new JdbcTemplate(ds);
             List<PM_DATA> list = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where timePoint <= ? and timePoint >= ? and statPointId in "+inIds, endTime, startTime);
-            if (list.isEmpty())
-            logger.debug("1::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list.size());
+           if (!list.isEmpty())
+                logger.info("1::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list.size());
             result = list;
         } else {
 
@@ -412,7 +413,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     } catch (Throwable e) {
                         logger.error(e.getMessage(),e);
                     }
-                    logger.debug("2::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list1 == null ? null : list1.size());
+                    logger.info("2::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list1 == null ? null : list1.size());
 
                     if (list1 != null && extract && list1.size() > 24) {
                         list1 = extract(list1,24);
