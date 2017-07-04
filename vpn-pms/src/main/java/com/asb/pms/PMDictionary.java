@@ -41,6 +41,12 @@ public class PMDictionary {
         @DicItem(desc = "CTP",code = "CTP")
         public static final int CTP = 4;
 
+        @DicItem(desc = "DATABASE",code = "DATABASE")
+        public static final int DATABASE = 6001;
+
+        @DicItem(desc = "TABLESPACE",code = "TABLESPACE")
+        public static final int TABLESPACE = 6002;
+
         @DicItem(desc = "客户",code = "CUSTOMER")
         public static final int CUSTOMER = 10001;
 
