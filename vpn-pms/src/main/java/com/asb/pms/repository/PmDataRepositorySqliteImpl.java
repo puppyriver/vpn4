@@ -436,16 +436,20 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
         if (t2 > 5)
             logger.info("query spend : "+t2+"ms");
+
+        if (result != null && result.size() > 48) {
+            result = extract(result,48);
+        }
         return result;
     }
 
     private List<PM_DATA> extract(List<PM_DATA> list1,int sampleNumber) {
         list1.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
         int rate = list1.size() / sampleNumber;
-        int idx = 0;
+   //     int idx = 0;
         List result = new ArrayList();
         for (int i = 0; i < list1.size(); i++) {
-            if (idx % rate == 0)
+            if (i % rate == 0)
                 result.add(list1.get(i));
         }
         return result;
