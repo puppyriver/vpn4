@@ -68,19 +68,26 @@ public class H2PMCache implements PMCache {
 
         if (files.size() > 0) {
             File file = files.get(files.size() - 1);
+            logger.info("Init data from file : "+file.getAbsolutePath());
             SqliteDataSource ds = new SqliteDataSource(file.getAbsolutePath());
-            JdbcTemplate srcTemplate = new JdbcTemplate(ds);
-            List<PM_DATA> list = null;
             try {
-                list = JdbcTemplateUtil.queryForList(srcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA");
+                JdbcTemplate srcTemplate = new JdbcTemplate(ds);
+                List<PM_DATA> list = null;
+                try {
+                    list = JdbcTemplateUtil.queryForList(srcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA");
+                } catch (Exception e) {
+                    logger.error(e, e);
+                }
+
+                for (PM_DATA pm_data : list) {
+                    this.addToCache(pm_data);
+                }
             } catch (Exception e) {
-                logger.error(e, e);
+                logger.error(e.getMessage(),e);
+            } finally {
+                ds.close();
             }
 
-            for (PM_DATA pm_data : list) {
-                this.addToCache(pm_data);
-            }
-            ds.close();
         }
 
 
