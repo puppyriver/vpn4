@@ -198,6 +198,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
 
     @Override
     public  List<String> queryStatePointKeys(List<String> paramsCodes, int entityType, List<String> entityDns) {
+        long t1 = System.currentTimeMillis();
         if (paramsCodes == null || entityDns == null) return new ArrayList<>();
         HashMap<Long,String> paraIdMap = new HashMap<>();
         List<Long> paramIds = paramsCodes.stream()
@@ -233,9 +234,14 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
         try {
             List<PM_STATPOINT> points = JdbcTemplateUtil.queryForList(Context.getInstance().pmStatPointDao.getCacheJdbc(), PM_STATPOINT.class,
                     sql, entityType);
-            if(points != null && points.size() >0)
-                return points.stream().map(pt -> new StpKey(paraIdMap.get(pt.getParamId()),entityType,entityIdMap.get(pt.getEntityId()),pt.getId()).toString())
-                    .collect(Collectors.toList());
+            if(points != null && points.size() >0) {
+                List<String> collect = points.stream().map(pt -> new StpKey(paraIdMap.get(pt.getParamId()), entityType, entityIdMap.get(pt.getEntityId()), pt.getId()).toString())
+                        .collect(Collectors.toList());
+                long t2 = System.currentTimeMillis();
+                if (t2-t1 > 1000)
+                    logger.info("queryStatePointKeys spend : "+(t2-t1)+"ms"+",paramsCodes="+Arrays.deepToString(paramsCodes.toArray())+",entityDns="+Arrays.deepToString(entityDns.toArray()));
+                return collect;
+            }
 
         } catch (Exception e) {
             logger.error(e, e);
@@ -247,6 +253,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
 
     @Override
     public Map<String, List<PM_DATA>> queryPMDATA(PMQuery query) throws Exception {
+        long t1 = System.currentTimeMillis();
         Map<String, List<PM_DATA>> data = doQueryPMDATA(query);
         if (data != null) {
             Collection<List<PM_DATA>> values = data.values();
@@ -264,6 +271,9 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
                 }
             }
         }
+        long t2 = System.currentTimeMillis();
+        if (t2-t1 > 1000)
+            logger.info("queryPMDATA spend : "+(t2-t1)+"ms");
         return data;
     }
 
@@ -283,6 +293,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
                      } )
                     .filter(data -> data != null)
                     .collect(Collectors.groupingBy(data-> stpKeys.get(data.getStatPointId())));
+            logger.info("query current : size = "+collect.size());
             return collect;
         }
 
