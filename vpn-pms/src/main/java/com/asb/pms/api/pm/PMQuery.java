@@ -29,6 +29,8 @@ public class PMQuery {
 
     public int queryMode = QUERY_MODE_ALL;
 
+    private HashMap attributes = new HashMap();
+
 
     public List<String> stpKeys = new ArrayList<>();
 
@@ -91,5 +93,13 @@ public class PMQuery {
             stpKeyMap.put(StpKey.parse(stpKey).getStpId(),stpKey);
         }
         return stpKeyMap.get(stpId);
+    }
+
+    public HashMap getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(HashMap attributes) {
+        this.attributes = attributes;
     }
 }

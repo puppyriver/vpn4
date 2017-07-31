@@ -348,7 +348,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 //        return sqliteDatasource;
 //    }
     @Override
-    public List<PM_DATA> query(Date startTime,Date endTime,List<String> stpKeys) throws Exception {
+    public List<PM_DATA> query(Date startTime,Date endTime,List<String> stpKeys, HashMap queryAttributes) throws Exception {
         logger.info("query :: startTime = {}, endTime = {} ,keys = {}",startTime,endTime,stpKeys == null ? null : stpKeys.stream().reduce((a1,a2)->a1+","+a2));
 
         if (endTime.before(startTime)) {
@@ -437,8 +437,25 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         if (t2 > 5)
             logger.info("query spend : "+t2+"ms");
 
-        if (result != null && result.size() > 48) {
+        if (queryAttributes != null && queryAttributes.containsKey("query.granularityInMin")) {
+            int granularityInMin = Integer.parseInt(queryAttributes.get("query.granularityInMin").toString());
+            result = extractByMinutes(result,granularityInMin);
+        } else if (result != null && result.size() > 48) {
             result = extract(result,48);
+        }
+        return result;
+    }
+
+    private List<PM_DATA> extractByMinutes(List<PM_DATA> list,int granularityInMin) {
+        list.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
+
+        List result = new ArrayList();
+        long t = -1;
+        for (PM_DATA pm_data : list) {
+            if (t < 0 || pm_data.getTimePoint().getTime() - t >= granularityInMin * 60 * 1000l - 10000l) {
+                t = pm_data.getTimePoint().getTime();
+                result.add(pm_data);
+            }
         }
         return result;
     }

@@ -306,7 +306,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
         for (String stpKey : queryKeys) {
             stpKeys.put(StpKey.parse(stpKey).getStpId(),stpKey);
         }
-        List<PM_DATA> query1 = repository.query(query.startTime, query.endTime,queryKeys);
+        List<PM_DATA> query1 = repository.query(query.startTime, query.endTime,queryKeys,query.getAttributes());
 
         if (query1 != null && query1.size() > 0) {
             Map<String, List<PM_DATA>> collect = query1.stream().collect(Collectors.groupingBy(data -> Optional.ofNullable(stpKeys.get(data.getStatPointId())).orElse("NULL")));
@@ -394,6 +394,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
         PmSystemUtil.updateValue(Constants.CATEGORY_PM_DATA,Constants.KEY_DB_TIMELINE,new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date));
 
         start();
+        logger.info("PmServer started : version = 0.70730");
     }
 
     public List<PM_DATA_Listener> getPmDataListeners() {

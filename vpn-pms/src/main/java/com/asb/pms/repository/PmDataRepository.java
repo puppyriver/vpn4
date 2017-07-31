@@ -4,7 +4,9 @@ import com.asb.pms.model.PM_DATA;
 
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Author: Ronnie.Chen
@@ -14,7 +16,7 @@ import java.util.List;
  */
 public interface PmDataRepository {
     public void insert(PM_DATA event);
-    public List<PM_DATA> query(Date startTime, Date endTime,List<String> stpKeys) throws Exception ;
+    public List<PM_DATA> query(Date startTime, Date endTime, List<String> stpKeys, HashMap queryAttributes) throws Exception ;
     public PM_DATA getLatest(long stpId);
     //public List find(String day)
 }
