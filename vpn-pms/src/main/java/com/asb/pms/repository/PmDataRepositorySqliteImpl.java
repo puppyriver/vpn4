@@ -462,8 +462,13 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     Comparator<PM_DATA> cp = (p1, p2) -> (p1.getValue() - p2.getValue() > 0 ? 1 : 0);
                     Optional<PM_DATA> max = bulk.stream().max(cp);
                     Optional<PM_DATA> min = bulk.stream().min(cp);
+                    Optional<Float> total = bulk.stream().map(pm_data1 -> pm_data1.getValue()).reduce((v1, v2) -> v1 + v2);
+                    float v = total.get() / bulk.size();
+
                     pm_data.getDataMap().put("max",max);
                     pm_data.getDataMap().put("min",min);
+                    pm_data.getDataMap().put("averageValue",v);
+
                 }
 
                 bulk.clear();
