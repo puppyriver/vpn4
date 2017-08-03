@@ -451,14 +451,31 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
         List result = new ArrayList();
         long t = -1;
+        List<PM_DATA> bulk = new ArrayList<>();
         for (PM_DATA pm_data : list) {
             if (t < 0 || pm_data.getTimePoint().getTime() - t >= granularityInMin * 60 * 1000l - 10000l) {
                 t = pm_data.getTimePoint().getTime();
                 result.add(pm_data);
+
+
+                if (bulk.size() > 0) {
+                    Comparator<PM_DATA> cp = (p1, p2) -> (p1.getValue() - p2.getValue() > 0 ? 1 : 0);
+                    Optional<PM_DATA> max = bulk.stream().max(cp);
+                    Optional<PM_DATA> min = bulk.stream().min(cp);
+                    pm_data.getDataMap().put("max",max);
+                    pm_data.getDataMap().put("min",min);
+                }
+
+                bulk.clear();
+                bulk.add(pm_data);
+            } else {
+                bulk.add(pm_data);
             }
         }
         return result;
     }
+
+
 
     private List<PM_DATA> extract(List<PM_DATA> list1,int sampleNumber) {
         list1.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
