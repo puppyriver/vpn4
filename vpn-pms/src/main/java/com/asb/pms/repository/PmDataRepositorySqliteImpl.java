@@ -368,7 +368,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         String start = getPartitionKey(startTime);
         String end = getPartitionKey(endTime);
         JdbcTemplate jdbcTemplate = null;
-        List result = null;
+        List<PM_DATA> result = null;
 //        List<Long> stpIds = stpKeys == null ? new ArrayList<>() :
 //                stpKeys.stream().map(key-> StpKey.parse(key).getStpId())
 //                        .collect(Collectors.toList());
@@ -439,7 +439,12 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
         if (queryAttributes != null && queryAttributes.containsKey("query.granularityInMin")) {
             int granularityInMin = Integer.parseInt(queryAttributes.get("query.granularityInMin").toString());
-            result = extractByMinutes(result,granularityInMin);
+            Map<Long, List<PM_DATA>> collect = result.stream().collect(Collectors.groupingBy(p -> p.getStatPointId()));
+            result.clear();
+            for (List<PM_DATA> datas : collect.values()) {
+                result.addAll(extractByMinutes(datas,granularityInMin));
+            }
+            //result = extractByMinutes(result,granularityInMin);
         } else if (result != null && result.size() > 48) {
             result = extract(result,48);
         }
