@@ -259,8 +259,17 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
             Collection<List<PM_DATA>> values = data.values();
             for (List<PM_DATA> pmDatas : values) {
                 for (PM_DATA pmData : pmDatas) {
-                    if (pmData.getDataMap() != null)
+                    if (pmData.getDataMap() != null) {
+
+                        HashMap map = new HashMap();
+                        Set keys = pmData.getDataMap().keySet();
+                        for (Object key : keys) {
+                            if (key.toString().startsWith("query_"))
+                                map.put(key,pmData.getDataMap().get(key));
+                        }
                         pmData.getDataMap().clear();
+                        pmData.getDataMap().putAll(map);
+                    }
                     PM_STATPOINT statpoint = Context.getInstance().pmStatPointDao.get(pmData.getStatPointId());
                     PM_PARAMS pmParams = null;
                     if (statpoint != null) {

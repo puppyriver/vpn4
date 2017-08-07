@@ -458,6 +458,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         long t = -1;
         List<PM_DATA> bulk = new ArrayList<>();
         for (PM_DATA pm_data : list) {
+            bulk.add(pm_data);
             if (t < 0 || pm_data.getTimePoint().getTime() - t >= granularityInMin * 60 * 1000l - 10000l) {
                 t = pm_data.getTimePoint().getTime();
                 result.add(pm_data);
@@ -470,14 +471,13 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     Optional<Float> total = bulk.stream().map(pm_data1 -> pm_data1.getValue()).reduce((v1, v2) -> v1 + v2);
                     float v = total.get() / bulk.size();
 
-                    pm_data.getDataMap().put("max",max);
-                    pm_data.getDataMap().put("min",min);
-                    pm_data.getDataMap().put("averageValue",v);
+                    pm_data.getDataMap().put("query_max",max);
+                    pm_data.getDataMap().put("query_min",min);
+                    pm_data.getDataMap().put("query_averageValue",v);
 
                 }
-
                 bulk.clear();
-                bulk.add(pm_data);
+
             } else {
                 bulk.add(pm_data);
             }
