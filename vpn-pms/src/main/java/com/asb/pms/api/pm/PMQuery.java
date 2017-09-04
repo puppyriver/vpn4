@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
  * Time: 13:59
  * rongrong.chen@alcatel-sbell.com.cn
  */
-public class PMQuery {
+public class PMQuery implements Serializable{
     private Logger logger = LoggerFactory.getLogger(PMQuery.class);
     public static final int QUERY_MODE_CACHE_ONLY = 0x001;
     public static final int QUERY_MODE_CACHE_AND_DB = 0x011;
@@ -39,7 +40,10 @@ public class PMQuery {
         return new PMQuery(stpKeys,startTime,endTime,queryMode);
     }
 
-    public PMQuery(List<String> stpKeys, Date startTime,Date endTime) {
+    public PMQuery() {
+    }
+
+    public PMQuery(List<String> stpKeys, Date startTime, Date endTime) {
         this.stpKeys = stpKeys;
         this.endTime = endTime;
         this.startTime = startTime;
