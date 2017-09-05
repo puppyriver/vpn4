@@ -471,8 +471,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     Optional<Float> total = bulk.stream().map(pm_data1 -> pm_data1.getValue()).reduce((v1, v2) -> v1 + v2);
                     float v = total.get() / bulk.size();
 
-                    pm_data.getDataMap().put("query_max",max);
-                    pm_data.getDataMap().put("query_min",min);
+                    pm_data.getDataMap().put("query_max",max.isPresent() ? max.get().getValue() : null);
+                    pm_data.getDataMap().put("query_min",min.isPresent() ? min.get().getValue() : null);
                     pm_data.getDataMap().put("query_averageValue",v);
 
                 }

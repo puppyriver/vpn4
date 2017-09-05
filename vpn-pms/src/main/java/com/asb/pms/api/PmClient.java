@@ -9,6 +9,8 @@ import com.asb.pms.util.SysProperty;
 import com.googlecode.jsonrpc4j.JsonRpcHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.remoting.caucho.HessianProxyFactoryBean;
+import org.springframework.remoting.rmi.RmiProxyFactoryBean;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -33,8 +35,12 @@ public class PmClient {
     public PmClient() {
         if (client == null) {
             try {
-                client = new JsonRpcHttpClient(
-                        new URL(SysProperty.getString("pmserver.jsonrpc.url","http://127.0.0.1:8080/pmsweb/ajax/PmServer.json")));
+//                client = new JsonRpcHttpClient(
+//                        new URL(SysProperty.getString("pmserver.jsonrpc.url","http://127.0.0.1:8080/pmsweb/ajax/PmServer.json")));
+                String url = SysProperty.getString("pmserver.jsonrpc.url", null);
+                if (url != null)
+                    client = new JsonRpcHttpClient(
+                        new URL(url));
             } catch (MalformedURLException e) {
                 logger.error(e, e);
             }
@@ -53,8 +59,32 @@ public class PmClient {
     }
 
 
-    public PmsServer getLocalServer() {
-        return PmsServer.inst;
+    private PMServerAPI rmiClient = null;
+
+    public PMServerAPI getLocalServer() {
+
+
+
+        String rmiURl = SysProperty.getString("pmserver.rmi.url");
+        if (rmiURl != null) {
+            if (rmiClient == null) {
+                synchronized (this) {
+                    if (rmiClient == null) {
+                        RmiProxyFactoryBean bean = new RmiProxyFactoryBean();
+                        bean.setServiceUrl(rmiURl);
+                        bean.setServiceInterface(PMServerAPI.class);
+                        bean.afterPropertiesSet();
+                        rmiClient = (PMServerAPI) bean.getObject();
+                    }
+                }
+            }
+            return rmiClient;
+        }
+
+        if (client == null)
+            return PmsServer.inst;
+
+        return null;
     }
 
     public PM_DATA sendPmData(PM_DATA pm_data) throws Throwable {
@@ -69,6 +99,9 @@ public class PmClient {
     }
 
     public PM_NODE hello(PM_NODE pm_node) throws Throwable {
+        if (getLocalServer() != null ) {
+            return (getLocalServer()).hello(pm_node);
+        }
         PM_NODE node = client.invoke("hello", new Object[] {pm_node}, PM_NODE.class);
         return node;
     }
@@ -88,5 +121,12 @@ public class PmClient {
             return result;
         }
         return client.invoke("queryPMDATA", new Object[] {query}, Map.class);
+    }
+
+    public static void main(String[] args) throws Throwable {
+        System.setProperty("pmserver.rmi.url","rmi://localhost:1099/PmsRmiService");
+
+        PM_NODE hello = PmClient.getInstance().hello(new PM_NODE());
+        System.out.println(hello);
     }
 }
