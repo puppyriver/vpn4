@@ -446,7 +446,12 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             }
             //result = extractByMinutes(result,granularityInMin);
         } else if (result != null && result.size() > 48) {
-            result = extract(result,48);
+           // result = extract(result,48);
+            Map<Long, List<PM_DATA>> collect = result.stream().collect(Collectors.groupingBy(p -> p.getStatPointId()));
+            result.clear();
+            for (List<PM_DATA> datas : collect.values()) {
+                result.addAll(extract(datas,48));
+            }
         }
         return result;
     }
