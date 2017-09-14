@@ -10,6 +10,8 @@ import com.asb.pms.api.pm.PMQueryUtil;
 import com.asb.pms.model.PM_DATA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.util.Pair;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -20,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -442,8 +445,21 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             Map<Long, List<PM_DATA>> collect = result.stream().collect(Collectors.groupingBy(p -> p.getStatPointId()));
             result.clear();
             for (List<PM_DATA> datas : collect.values()) {
-                result.addAll(extractByMinutes(datas,granularityInMin));
+                List<PM_DATA> c = extractByMinutes(datas, granularityInMin);
+                if (granularityInMin == 5) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+                    long rangeStart = sdf.parse("20170801").getTime();
+                    long rangeEnd = sdf.parse("20170911").getTime();
+                    if ((startTime.getTime() >= rangeStart && startTime.getTime() <= rangeEnd) ||
+                            (startTime.getTime() < rangeStart && endTime.getTime() >= rangeStart)) {
+                        logger.info("between 20170801 and 20170911 ,process data : ");
+                        c =  putDataInTimeSlot(c);
+                    }
+                }
+                result.addAll(c);
             }
+
+
             //result = extractByMinutes(result,granularityInMin);
         } else if (result != null && result.size() > 48) {
            // result = extract(result,48);
@@ -454,6 +470,77 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             }
         }
         return result;
+    }
+
+    private List<PM_DATA> putDataInTimeSlot(List<PM_DATA> result) {
+        if (result == null || result.size() < 2) return result;
+
+        int timeSlotInMinutes = 5;
+        long timeSlotInMilis = timeSlotInMinutes * 60 * 1000l;
+        result.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
+
+
+        Date d_st = result.get(0).getTimePoint();
+        Date d_ed = result.get(result.size() - 1).getTimePoint();
+
+        List<Pair<Date, PM_DATA[]>> timeSlots = new ArrayList<>();
+        Function<Date,Date> adjustTime = (date)-> {
+            Calendar ca = Calendar.getInstance();
+            ca.setTime(date);
+            int min = ca.get(Calendar.MINUTE);
+            min = min - min % 5;
+            ca.set(Calendar.MINUTE,min);
+            ca.set(Calendar.SECOND,0);
+            return ca.getTime();
+        };
+
+        Date s = adjustTime.apply(d_st);
+        Date e = adjustTime.apply(d_ed);
+        for (long t = s.getTime(); t <= e.getTime(); t += timeSlotInMilis) {
+            timeSlots.add(Pair.of(new Date(t),new PM_DATA[1] ));
+        }
+
+
+        for (PM_DATA pm_data : result) {
+            long timePoint = pm_data.getTimePoint().getTime();
+            timeSlots.stream().filter(ts->
+                    (ts.getFirst().getTime() >= timePoint && ts.getFirst().getTime() - timePoint < timeSlotInMilis)
+                    || (ts.getFirst().getTime() <= timePoint && timePoint - ts.getFirst().getTime() < timeSlotInMilis)
+            ).findAny().ifPresent(slot->{
+                pm_data.setSource(new SimpleDateFormat("yyyyMMdd-HHmmss").format(pm_data.getTimePoint()));
+                pm_data.setTimePoint(slot.getFirst());
+                slot.getSecond()[0] = pm_data;
+            });
+        }
+
+        for (int i = 0; i < timeSlots.size(); i++) {
+            Pair<Date, PM_DATA[]> pair = timeSlots.get(i);
+            if (pair.getSecond()[0] == null) {
+                for (int j = 1; j < 3; j++) {
+                    PM_DATA sample = timeSlots.get(i + j).getSecond()[0];
+                    if (sample != null) {
+                        PM_DATA makeup = new PM_DATA();
+                        BeanUtils.copyProperties(sample,makeup);
+
+                        makeup.setTimePoint(pair.getFirst());
+                        if (i > 0 && timeSlots.get(i-1).getSecond()[0] != null)
+                            makeup.setValue((sample.getValue() + timeSlots.get(i-1).getSecond()[0].getValue()) / 2);
+                        else
+                            makeup.setValue(sample.getValue());
+
+                        makeup.setSource("MAKEUP");
+                        pair.getSecond()[0] = makeup;
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        return timeSlots.stream()
+                .filter(pair -> pair.getSecond()[0] != null)
+                .map(pair -> pair.getSecond()[0])
+                .collect(Collectors.toList());
     }
 
     private List<PM_DATA> extractByMinutes(List<PM_DATA> list,int granularityInMin) {
