@@ -453,7 +453,11 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     if ((startTime.getTime() >= rangeStart && startTime.getTime() <= rangeEnd) ||
                             (startTime.getTime() < rangeStart && endTime.getTime() >= rangeStart)) {
                         logger.info("between 20170801 and 20170911 ,process data : ");
-                        c =  putDataInTimeSlot(c);
+                        try {
+                            c = putDataInTimeSlot(c);
+                        } catch (Exception e) {
+                            logger.error(e.getMessage(),e);
+                        }
                     }
                 }
                 result.addAll(c);
