@@ -528,7 +528,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
                         makeup.setTimePoint(pair.getFirst());
                         if (i > 0 && timeSlots.get(i-1).getSecond()[0] != null)
-                            makeup.setValue((sample.getValue() + timeSlots.get(i-1).getSecond()[0].getValue()) / 2);
+                            makeup.setValue(MathUtil.formatFloat(sample.getValue() + timeSlots.get(i-1).getSecond()[0].getValue() / 2));
                         else
                             makeup.setValue(sample.getValue());
 
