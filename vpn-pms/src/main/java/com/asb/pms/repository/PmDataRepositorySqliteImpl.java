@@ -418,9 +418,9 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     }
                     logger.info("2::Query in {}: start {}, end {} ,result = {}",ds,startTime,endTime,list1 == null ? null : list1.size());
 
-                    if (list1 != null && extract && list1.size() > 24) {
-                        list1 = extract(list1,24);
-                    }
+//                    if (list1 != null && extract && list1.size() > 24) {
+//                        list1 = extract(list1,24);
+//                    }
                     if (list1 != null)
                         result.addAll(list1);
                 } finally {
@@ -440,6 +440,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         if (t2 > 5)
             logger.info("query spend : "+t2+"ms");
 
+        logger.info("bbbb: result szie = "+result.size());
+
         if (queryAttributes != null && queryAttributes.containsKey("query.granularityInMin")) {
             int granularityInMin = Integer.parseInt(queryAttributes.get("query.granularityInMin").toString());
             Map<Long, List<PM_DATA>> collect = result.stream().collect(Collectors.groupingBy(p -> p.getStatPointId()));
@@ -450,10 +452,11 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
                     long rangeStart = sdf.parse("20170801").getTime();
                     long rangeEnd = sdf.parse("20170911").getTime();
-                    if ((startTime.getTime() >= rangeStart && startTime.getTime() <= rangeEnd) ||
+                    if (SysProperty.getString("pms.enforceTimeSlot","").equalsIgnoreCase("true") && (startTime.getTime() >= rangeStart && startTime.getTime() <= rangeEnd) ||
                             (startTime.getTime() < rangeStart && endTime.getTime() >= rangeStart)) {
                         logger.info("between 20170801 and 20170911 ,process data : ");
                         try {
+                            logger.info("bbbb: putdataintimeslot");
                             c = putDataInTimeSlot(c);
                         } catch (Exception e) {
                             logger.error(e.getMessage(),e);
@@ -462,6 +465,8 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                 }
                 result.addAll(c);
             }
+
+            logger.info("bbbb: result2 szie = "+result.size());
 
 
             //result = extractByMinutes(result,granularityInMin);
@@ -473,6 +478,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                 result.addAll(extract(datas,48));
             }
         }
+        logger.info("bbbb: retrun result szie = "+result.size());
         return result;
     }
 
@@ -517,6 +523,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
             });
         }
 
+        int makeupsize = 0;
         for (int i = 0; i < timeSlots.size(); i++) {
             Pair<Date, PM_DATA[]> pair = timeSlots.get(i);
             if (pair.getSecond()[0] == null) {
@@ -528,11 +535,14 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
                         makeup.setTimePoint(pair.getFirst());
                         if (i > 0 && timeSlots.get(i-1).getSecond()[0] != null)
-                            makeup.setValue(MathUtil.formatFloat(sample.getValue() + timeSlots.get(i-1).getSecond()[0].getValue() / 2));
+                            makeup.setValue(MathUtil.formatFloat((sample.getValue() + timeSlots.get(i-1).getSecond()[0].getValue()) / 2));
                         else
                             makeup.setValue(sample.getValue());
 
+                        makeup.setValue((float)(makeup.getValue() * ((Math.random() + 9) / 10)   ));
+
                         makeup.setSource("MAKEUP");
+                        makeupsize ++;
                         pair.getSecond()[0] = makeup;
 
                         break;
@@ -540,6 +550,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
                 }
             }
         }
+        logger.info("bbbb makeup size = "+makeupsize);
 
         return timeSlots.stream()
                 .filter(pair -> pair.getSecond()[0] != null)
@@ -548,7 +559,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
     }
 
     private List<PM_DATA> extractByMinutes(List<PM_DATA> list,int granularityInMin) {
-        list.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
+        list.sort((o1,o2)-> (o1.getTimePoint().getTime() > o2.getTimePoint().getTime()  ? 1 : -1));
 
         List result = new ArrayList();
         long t = -1;
