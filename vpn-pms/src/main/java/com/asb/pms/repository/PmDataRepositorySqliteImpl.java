@@ -566,7 +566,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         List<PM_DATA> bulk = new ArrayList<>();
         for (PM_DATA pm_data : list) {
             bulk.add(pm_data);
-            if (t < 0 || pm_data.getTimePoint().getTime() - t >= granularityInMin * 60 * 1000l - 10000l) {
+            if (t < 0 || pm_data.getTimePoint().getTime() - t >= 0.9 * granularityInMin * 60 * 1000l - 10000l) {
                 t = pm_data.getTimePoint().getTime();
                 result.add(pm_data);
 
