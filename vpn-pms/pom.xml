@@ -5,7 +5,6 @@
   <artifactId>pms2</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-
   <name>pms2</name>
   <url>http://maven.apache.org</url>
 
