@@ -487,7 +487,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
         int timeSlotInMinutes = 5;
         long timeSlotInMilis = timeSlotInMinutes * 60 * 1000l;
-        result.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
+        result.sort((o1,o2)-> (o1.getTimePoint().getTime() > o2.getTimePoint().getTime()  ? 1 : -1));
 
 
         Date d_st = result.get(0).getTimePoint();
@@ -566,13 +566,13 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
         List<PM_DATA> bulk = new ArrayList<>();
         for (PM_DATA pm_data : list) {
             bulk.add(pm_data);
-            if (t < 0 || pm_data.getTimePoint().getTime() - t >= 0.9 * granularityInMin * 60 * 1000l - 10000l) {
+            if (t < 0 || pm_data.getTimePoint().getTime() - t >=  (granularityInMin-1) * 60 * 1000l - 10000l) {
                 t = pm_data.getTimePoint().getTime();
                 result.add(pm_data);
 
 
                 if (bulk.size() > 0) {
-                    Comparator<PM_DATA> cp = (p1, p2) -> (p1.getValue() - p2.getValue() > 0 ? 1 : 0);
+                    Comparator<PM_DATA> cp = (p1, p2) -> (p1.getValue() - p2.getValue() > 0 ? 1 : -1);
                     Optional<PM_DATA> max = bulk.stream().max(cp);
                     Optional<PM_DATA> min = bulk.stream().min(cp);
                     Optional<Float> total = bulk.stream().map(pm_data1 -> pm_data1.getValue()).reduce((v1, v2) -> v1 + v2);
@@ -595,7 +595,7 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
 
     private List<PM_DATA> extract(List<PM_DATA> list1,int sampleNumber) {
-        list1.sort((o1,o2)->(int)(o1.getTimePoint().getTime() - o2.getTimePoint().getTime()));
+        list1.sort((o1,o2)-> (o1.getTimePoint().getTime() > o2.getTimePoint().getTime()  ? 1 : -1));
         int rate = list1.size() / sampleNumber;
    //     int idx = 0;
         List result = new ArrayList();
@@ -631,22 +631,32 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
     public static void main(String[] args) throws SQLException {
 
-        List list = new ArrayList();
-
-        for (int j = 0 ; j < 1000; j++) {
-            System.out.println(j);
-            H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:abc_"+j,false);
-            list.add(h2DataSource);
-            JdbcTemplate jd = new JdbcTemplate(h2DataSource);
-            JdbcTemplateUtil.createTable(jd,PM_DATA.class,"PM_DATA");
-            for(int i = 0; i < 10000; i++) {
-                PM_DATA record = new PM_DATA();
-
-                JdbcTemplateUtil.insert(jd, "PM_DATA", record);
-            }
-            h2DataSource.release();
-            list.remove(h2DataSource);
+        List<PM_DATA> list = new ArrayList<>();
+        for (int i=0; i < 10; i++) {
+            PM_DATA pm_data = new PM_DATA();
+            pm_data.setValue((float)i);
+            list.add(pm_data);
         }
+        Comparator<PM_DATA> cp = (p1, p2) -> (p1.getValue() > p2.getValue() ? 1 : -1);
+        Optional<PM_DATA> max = list.stream().max(cp);
+        System.out.println("max.get() = " + max.get().getValue());
+
+//        List list = new ArrayList();
+//
+//        for (int j = 0 ; j < 1000; j++) {
+//            System.out.println(j);
+//            H2DataSource h2DataSource = new H2DataSource("jdbc:h2:mem:abc_"+j,false);
+//            list.add(h2DataSource);
+//            JdbcTemplate jd = new JdbcTemplate(h2DataSource);
+//            JdbcTemplateUtil.createTable(jd,PM_DATA.class,"PM_DATA");
+//            for(int i = 0; i < 10000; i++) {
+//                PM_DATA record = new PM_DATA();
+//
+//                JdbcTemplateUtil.insert(jd, "PM_DATA", record);
+//            }
+//            h2DataSource.release();
+//            list.remove(h2DataSource);
+//        }
 
 
 
