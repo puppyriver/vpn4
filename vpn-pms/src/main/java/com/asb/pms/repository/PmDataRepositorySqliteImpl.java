@@ -145,6 +145,14 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
     private LinkedList<String> writeCacheOrder = new LinkedList<>();
     private LinkedList<String> readCacheOrder = new LinkedList<>();
     public synchronized H2DataSource getCacheDS(String dayString,boolean write,boolean readForceGet) {
+
+        // read cache off
+        if (!write &&!writeCacheOrder.contains(dayString)) {
+            return null;
+        }
+        // read cache off
+
+
         synchronized (cacheMap) {
             if (write) {
                 if (readCacheOrder.contains(dayString)) {
@@ -380,7 +388,9 @@ public class PmDataRepositorySqliteImpl implements PmDataRepository {
 
 
         if (start.equals(end)) {
-            H2DataSource ds = getCacheDS(start,false,true);
+            DataSource ds = getCacheDS(start,false,true);
+            if (ds == null)
+                ds = getDS(start,false,false);
             jdbcTemplate = new JdbcTemplate(ds);
             List<PM_DATA> list = JdbcTemplateUtil.queryForList(jdbcTemplate, PM_DATA.class, "SELECT * FROM PM_DATA where timePoint <= ? and timePoint >= ? and statPointId in "+inIds, endTime, startTime);
            if (!list.isEmpty())
