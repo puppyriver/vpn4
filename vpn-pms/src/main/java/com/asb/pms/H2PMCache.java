@@ -56,7 +56,7 @@ public class H2PMCache implements PMCache {
         }
 
         if (SysProperty.getString("LoadCacheOnStartup","on").equalsIgnoreCase("on")) {
-            initData();
+          //  initData();
         }
 
 
