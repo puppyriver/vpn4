@@ -46,7 +46,20 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
     public static PmsServer inst = null;
     public PmsServer() {
         inst = this;
-        repository = new PmDataRepositorySqliteImpl();
+
+        repository = null;
+        String cls = SysProperty.getString("pms.repository.class", "");
+        if (cls != null && cls.trim().length() > 0) {
+            try {
+                repository = (PmDataRepository) Class.forName(cls).newInstance();
+            } catch ( Exception e) {
+                logger.error(e.getMessage(),e);
+            }
+        }
+        if (repository == null)
+            repository = new PmDataRepositorySqliteImpl();
+
+        logger.info("Repository = "+ repository);
         pmReceiver = new PMReceiver(repository);
     }
 
