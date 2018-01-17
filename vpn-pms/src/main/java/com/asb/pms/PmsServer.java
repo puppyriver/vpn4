@@ -267,6 +267,7 @@ public class PmsServer implements ApplicationContextAware,InitializingBean,PMSer
     @Override
     public Map<String, List<PM_DATA>> queryPMDATA(PMQuery query) throws Exception {
         long t1 = System.currentTimeMillis();
+        logger.info("doQUery:"+query+" keys="+query.stpKeys.size());
         Map<String, List<PM_DATA>> data = doQueryPMDATA(query);
         if (data != null) {
             Collection<List<PM_DATA>> values = data.values();

@@ -120,6 +120,7 @@ public class PmDataRepositorySqliteNoCacheImpl implements PmDataRepository {
     @Override
     public void insert(PM_DATA event) {
         template.offerOne(event);
+        addToLatestCache(event);
     }
 
 
@@ -400,6 +401,7 @@ public class PmDataRepositorySqliteNoCacheImpl implements PmDataRepository {
 
     @Override
     public PM_DATA getLatest(long stpId) {
+        logger.info("get lastest = "+stpId);
         PM_DATA data = lastestCache.get(stpId);
         if (data != null && data.getDataMap() != null)
             data.getDataMap().clear();

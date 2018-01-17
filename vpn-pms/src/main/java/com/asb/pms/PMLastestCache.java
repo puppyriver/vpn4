@@ -22,7 +22,10 @@ public class PMLastestCache {
     }
 
     public PM_DATA get(long stpId) {
-        return dataMap.get(stpId);
+     //   logger.info("laster caache size = "+dataMap.size());
+        PM_DATA data =  dataMap.get(stpId);
+      //  logger.info("get lastest : "+data);
+        return data;
     }
     public void remove(Long statPointId) {
         dataMap.remove(statPointId);
